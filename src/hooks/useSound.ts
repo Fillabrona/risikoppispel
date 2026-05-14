@@ -47,45 +47,54 @@ export function useSound(isMuted: boolean = false) {
         osc.start(now);
         osc.stop(now + 0.4);
       } else if (type === 'award') {
-        // Sophisticated, warm chime arpeggio
+        // High-quality bright "success" chime with harmonics
         const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
         frequencies.forEach((freq, i) => {
           const o = audioCtx!.createOscillator();
           const g = audioCtx!.createGain();
           o.type = 'sine';
-          o.frequency.setValueAtTime(freq, now + i * 0.06);
-          g.gain.setValueAtTime(0.15, now + i * 0.06);
-          g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.06 + 0.6);
+          o.frequency.setValueAtTime(freq, now + i * 0.08);
+          // Add a second harmonic oscillator for warmth
+          const o2 = audioCtx!.createOscillator();
+          o2.type = 'sine';
+          o2.frequency.setValueAtTime(freq * 2, now + i * 0.08);
+
+          g.gain.setValueAtTime(0, now + i * 0.08);
+          g.gain.linearRampToValueAtTime(0.12, now + i * 0.08 + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.6);
+          
           o.connect(g);
+          o2.connect(g);
           g.connect(audioCtx!.destination);
-          o.start(now + i * 0.06);
-          o.stop(now + i * 0.06 + 0.6);
+          
+          o.start(now + i * 0.08);
+          o2.start(now + i * 0.08);
+          o.stop(now + i * 0.08 + 0.8);
+          o2.stop(now + i * 0.08 + 0.8);
         });
       } else if (type === 'penalize') {
-        // Soft but firm "wrong" sound, avoiding harsh buzzers
+        // Organic "wrong" sound: damped harmonic pulse
         const freq = 110; // A2
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now);
-        osc.frequency.linearRampToValueAtTime(freq * 0.8, now + 0.5);
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(freq, now);
+        o.frequency.exponentialRampToValueAtTime(freq * 0.8, now + 0.4);
         
-        const osc2 = audioCtx.createOscillator();
-        const gain2 = audioCtx.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(freq * 1.05, now); // Slight dissonance
-        osc2.frequency.linearRampToValueAtTime(freq * 0.85, now + 0.5);
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(400, now);
+        filter.frequency.exponentialRampToValueAtTime(100, now + 0.4);
         
-        gainNode.gain.setValueAtTime(0.2, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-        gain2.gain.setValueAtTime(0.2, now);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        o.connect(filter);
+        filter.connect(g);
+        g.connect(audioCtx.destination);
         
-        osc2.connect(gain2);
-        gain2.connect(audioCtx.destination);
+        g.gain.setValueAtTime(0.3, now);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
         
-        osc.start(now);
-        osc2.start(now);
-        osc.stop(now + 0.5);
-        osc2.stop(now + 0.5);
+        o.start(now);
+        o.stop(now + 0.4);
       } else if (type === 'click') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
