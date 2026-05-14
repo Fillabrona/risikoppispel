@@ -47,33 +47,45 @@ export function useSound(isMuted: boolean = false) {
         osc.start(now);
         osc.stop(now + 0.3);
       } else if (type === 'award') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.setValueAtTime(600, now + 0.1);
-        gainNode.gain.setValueAtTime(0.6, now);
-        gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
-        osc.start(now);
-        osc.stop(now + 0.3);
-      } else if (type === 'penalize') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.linearRampToValueAtTime(80, now + 0.4);
+        // Modern, soft success chime (major third interval)
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
         
-        // Tremolo effect for the buzz punch
-        const lfo = audioCtx.createOscillator();
-        lfo.type = 'sine';
-        lfo.frequency.value = 20;
-        const lfoGain = audioCtx.createGain();
-        lfoGain.gain.value = 50;
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-        lfo.start(now);
-        lfo.stop(now + 0.4);
-
-        gainNode.gain.setValueAtTime(0.8, now);
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(523.25, now); // C5
+        
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(659.25, now); // E5
+        
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-        osc.start(now);
-        osc.stop(now + 0.4);
+        
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.4);
+        osc2.stop(now + 0.4);
+      } else if (type === 'penalize') {
+         // Modern, soft error tone (deeper decay)
+         const osc = audioCtx.createOscillator();
+         const gainNode = audioCtx.createGain();
+ 
+         osc.type = 'triangle';
+         osc.frequency.setValueAtTime(150, now);
+         osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+         
+         osc.connect(gainNode);
+         gainNode.connect(audioCtx.destination);
+ 
+         gainNode.gain.setValueAtTime(0.4, now);
+         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+         
+         osc.start(now);
+         osc.stop(now + 0.3);
       } else if (type === 'click') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
