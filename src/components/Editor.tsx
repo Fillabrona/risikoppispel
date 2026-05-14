@@ -508,7 +508,7 @@ Output ONLY valid JSON, no markdown formatting.
       <main className="flex-1 overflow-y-auto no-scrollbar relative">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none mix-blend-overlay"></div>
         
-        <div className="max-w-6xl mx-auto p-8 relative z-10">
+        <div className="max-w-[1400px] mx-auto p-8 relative z-10">
           <header className="mb-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
              <div className="flex flex-col">
                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1 mb-2">Game Title</label>
