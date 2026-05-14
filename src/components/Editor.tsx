@@ -84,7 +84,7 @@ function CustomColorPicker({ value, onChange }: { value: string, onChange: (val:
     if (!isOpen && ref.current) {
       const rect = ref.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      setOpenUpwards(spaceBelow < 250);
+      setOpenUpwards(spaceBelow < 280);
     }
     setIsOpen(!isOpen);
   };
@@ -105,24 +105,18 @@ function CustomColorPicker({ value, onChange }: { value: string, onChange: (val:
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: openUpwards ? 10 : -10 }}
+            initial={{ opacity: 0, scale: 0.95, y: openUpwards ? 10 : -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: openUpwards ? 10 : -10 }}
-            className={`absolute z-[60] p-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl origin-center ${
+            exit={{ opacity: 0, scale: 0.95, y: openUpwards ? 10 : -10 }}
+            className={`absolute z-[60] p-3 bg-slate-900 border border-slate-700/50 rounded-3xl shadow-2xl origin-center backdrop-blur-xl ${
               openUpwards ? 'bottom-full mb-3' : 'top-full mt-3'
             }`}
           >
             <HexColorPicker color={value} onChange={onChange} />
-            <div className="mt-2 flex items-center justify-between gap-2">
-               <div className="flex-1 px-2 py-1.5 bg-slate-950 rounded-lg text-[10px] font-mono text-slate-400 border border-slate-800 uppercase">
+            <div className="mt-3 flex items-center justify-between gap-3">
+               <div className="flex-1 px-3 py-1.5 bg-slate-950 rounded-xl text-[10px] font-mono text-slate-400 border border-slate-800 uppercase text-center">
                  {value}
                </div>
-               <button 
-                 onClick={() => setIsOpen(false)}
-                 className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold rounded-lg transition-colors uppercase"
-               >
-                 Done
-               </button>
             </div>
           </motion.div>
         )}
@@ -153,7 +147,10 @@ export default function Editor({ gameState, hooks, onPlay, isMuted, setIsMuted }
   };
 
   const handleGenerateAI = async () => {
-    if (!aiPrompt && !aiBonusEnabled) return alert('Please enter a description for the game content.');
+    if (!aiPrompt && !aiBonusEnabled) {
+      setModal({ title: "Beskrywing Benodig", message: "Voer asseblief 'n beskrywing in vir die speletjie-inhoud." });
+      return;
+    }
     setIsGenerating(true);
     try {
       const keyToUse = apiKey || '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';
@@ -201,7 +198,7 @@ Make it engaging and accurate!`;
       if (!response.ok) {
         const errText = await response.text();
         console.error("Groq API Error:", errText);
-        throw new Error('API Error: ' + errText);
+        throw new Error('API Fout');
       }
       const data = await response.json();
       let content = data.choices[0].message.content;
@@ -214,11 +211,11 @@ Make it engaging and accurate!`;
         parsed = JSON.parse(content);
       } catch (e) {
         console.error("AI response:", content);
-        throw new Error("The AI didn't format the response properly. Please try again.");
+        throw new Error("Die AI het nie die antwoord korrek geformateer nie.");
       }
       
       if (!parsed.categories || !Array.isArray(parsed.categories)) {
-        throw new Error("AI did not generate proper categories. Try adjusting your description.");
+        throw new Error("AI het nie behoorlike kategorieë gegenereer nie.");
       }
       
       const newCategories = parsed.categories.map((c: any, i: number) => ({
@@ -241,7 +238,7 @@ Make it engaging and accurate!`;
       setActiveTab('categories');
       setAiPrompt('');
     } catch(e: any) {
-      alert('Error generating from AI: ' + e.message);
+      setModal({ title: "Gegenereer Fout", message: e.message });
     } finally {
       setIsGenerating(false);
     }
@@ -338,7 +335,7 @@ Output ONLY valid JSON, no markdown formatting.
         categories: newCategories
       });
     } catch(e: any) {
-      alert('Error generating from AI: ' + e.message);
+      setModal({ title: "Bonus Fout", message: "Kon nie bonusvraagnote genereer nie: " + e.message });
     } finally {
       setIsGenerating(false);
     }
@@ -364,7 +361,7 @@ Output ONLY valid JSON, no markdown formatting.
         hooks.setGameState(json);
       } catch (err) {
         console.error("Error parsing JSON:", err);
-        alert("Failed to import game state. Ensure it is a valid JSON file.");
+        setModal({ title: "Invoer Fout", message: "Kon nie die speletjie invoer nie. Maak seker dit is 'n geldige JSON-lêer." });
       }
     };
     reader.readAsText(file);

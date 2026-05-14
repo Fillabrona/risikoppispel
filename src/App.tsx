@@ -30,19 +30,24 @@ export default function App() {
         src = allAnswered ? "https://fillabrona.github.io/victory.m4a" : "https://fillabrona.github.io/jeopardy.m4a";
       }
 
-      // Use a more robust check for src
-      const currentSrc = audioRef.current.src;
-      if (!currentSrc || !currentSrc.endsWith(src.split('/').pop() || '')) {
-        audioRef.current.src = src;
-        audioRef.current.load();
-        audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      const audio = audioRef.current;
+      
+      // Use dataset to store the abstract src to avoid browser-absolute path issues
+      if (audio.dataset.activeSrc !== src) {
+        audio.dataset.activeSrc = src;
+        audio.src = src;
+        audio.load();
+        
+        if (!isMuted) {
+          audio.play().catch(e => console.error("Audio playback failed:", e));
+        }
       }
       
-      audioRef.current.muted = isMuted;
-      audioRef.current.loop = true;
+      audio.muted = isMuted;
+      audio.loop = true;
       
-      if (!isMuted) {
-        audioRef.current.play().catch(() => {});
+      if (!isMuted && audio.paused) {
+        audio.play().catch(() => {});
       }
     }
   }, [allAnswered, isMuted, mode, audioUnlocked]);

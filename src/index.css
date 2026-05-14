@@ -62,10 +62,13 @@ html, body {
   border-radius: 0 0 12px 12px !important;
 }
 .react-colorful__pointer {
-  width: 14px !important;
-  height: 14px !important;
+  width: 12px !important;
+  height: 12px !important;
 }
 .react-colorful__pointer-fill {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 0 0 1.5px #fff, 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+}
+.react-colorful__saturation {
+  border-bottom: 2px solid rgba(0,0,0,0.1);
 }
 
