@@ -32,69 +32,48 @@ export function useSound(isMuted: boolean = false) {
 
       if (type === 'select') {
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(440, now);
-        osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
-        gainNode.gain.setValueAtTime(0.2, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+        gainNode.gain.setValueAtTime(0.8, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
         osc.start(now);
-        osc.stop(now + 0.08);
+        osc.stop(now + 0.1);
       } else if (type === 'reveal') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(220, now);
-        osc.frequency.exponentialRampToValueAtTime(440, now + 0.4);
-        gainNode.gain.setValueAtTime(0.2, now);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(900, now + 0.3);
+        gainNode.gain.setValueAtTime(0.8, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === 'award') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.setValueAtTime(600, now + 0.1);
+        gainNode.gain.setValueAtTime(0.6, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === 'penalize') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(80, now + 0.4);
+        
+        // Tremolo effect for the buzz punch
+        const lfo = audioCtx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 20;
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = 50;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        lfo.start(now);
+        lfo.stop(now + 0.4);
+
+        gainNode.gain.setValueAtTime(0.8, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
         osc.start(now);
         osc.stop(now + 0.4);
-      } else if (type === 'award') {
-        // High-quality bright "success" chime with harmonics
-        const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-        frequencies.forEach((freq, i) => {
-          const o = audioCtx!.createOscillator();
-          const g = audioCtx!.createGain();
-          o.type = 'sine';
-          o.frequency.setValueAtTime(freq, now + i * 0.08);
-          // Add a second harmonic oscillator for warmth
-          const o2 = audioCtx!.createOscillator();
-          o2.type = 'sine';
-          o2.frequency.setValueAtTime(freq * 2, now + i * 0.08);
-
-          g.gain.setValueAtTime(0, now + i * 0.08);
-          g.gain.linearRampToValueAtTime(0.12, now + i * 0.08 + 0.01);
-          g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.6);
-          
-          o.connect(g);
-          o2.connect(g);
-          g.connect(audioCtx!.destination);
-          
-          o.start(now + i * 0.08);
-          o2.start(now + i * 0.08);
-          o.stop(now + i * 0.08 + 0.8);
-          o2.stop(now + i * 0.08 + 0.8);
-        });
-      } else if (type === 'penalize') {
-        // Organic "wrong" sound: damped harmonic pulse
-        const freq = 110; // A2
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        o.type = 'triangle';
-        o.frequency.setValueAtTime(freq, now);
-        o.frequency.exponentialRampToValueAtTime(freq * 0.8, now + 0.4);
-        
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(400, now);
-        filter.frequency.exponentialRampToValueAtTime(100, now + 0.4);
-        
-        o.connect(filter);
-        filter.connect(g);
-        g.connect(audioCtx.destination);
-        
-        g.gain.setValueAtTime(0.3, now);
-        g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-        
-        o.start(now);
-        o.stop(now + 0.4);
       } else if (type === 'click') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
