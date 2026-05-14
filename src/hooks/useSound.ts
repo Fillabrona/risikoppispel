@@ -63,7 +63,7 @@ export function useSound(isMuted: boolean = false) {
         gainNode.connect(audioCtx.destination);
         
         gainNode.gain.setValueAtTime(0.0, now);
-        gainNode.gain.linearRampToValueAtTime(1.2, now + 0.05); // Louder chime
+        gainNode.gain.linearRampToValueAtTime(1.0, now + 0.05); // Modern volume level
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6); // Softer decay
         
         osc1.start(now);
@@ -71,27 +71,27 @@ export function useSound(isMuted: boolean = false) {
         osc1.stop(now + 0.6);
         osc2.stop(now + 0.6);
       } else if (type === 'penalize') {
-         // Modern, soft error tone (downward, mellow sine)
+         // Deep, soft 'thud' error sound
          const osc = audioCtx.createOscillator();
          const gainNode = audioCtx.createGain();
  
          osc.type = 'sine'; 
-         osc.frequency.setValueAtTime(220, now); // A3
-         osc.frequency.exponentialRampToValueAtTime(110, now + 0.4);
+         osc.frequency.setValueAtTime(150, now);
+         osc.frequency.exponentialRampToValueAtTime(100, now + 0.2); // Fast, soft pitch drop
          
          osc.connect(gainNode);
          gainNode.connect(audioCtx.destination);
  
          gainNode.gain.setValueAtTime(0.0, now);
-         gainNode.gain.linearRampToValueAtTime(1.2, now + 0.05); // Louder penalize
-         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+         gainNode.gain.linearRampToValueAtTime(0.8, now + 0.02); // Fast attack
+         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
          
          osc.start(now);
-         osc.stop(now + 0.4);
+         osc.stop(now + 0.2);
       } else if (type === 'click') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
-        gainNode.gain.setValueAtTime(1.2, now); // Louder click
+        gainNode.gain.setValueAtTime(0.9, now); // Click volume
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
         osc.start(now);
         osc.stop(now + 0.05);
