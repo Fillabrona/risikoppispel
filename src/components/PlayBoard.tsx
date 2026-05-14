@@ -218,7 +218,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     }
 
     // Check all_clear
-    const isAllCleared = gridCategories.length > 0 && gridCategories.every(cat => cat.questions.every(q => q.isAnswered));
+    const isAllCleared = gridCategories.every(cat => cat.questions.every(q => q.isAnswered));
     if (isAllCleared) {
       const allClearBonuses = gameState.categories.flatMap(c => 
         c.questions.filter(q => q.isBonus && q.bonusTrigger === 'all_clear' && !triggeredBonusIds.has(q.id))

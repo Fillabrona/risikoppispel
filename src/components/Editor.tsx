@@ -508,7 +508,7 @@ Output ONLY valid JSON, no markdown formatting.
       <main className="flex-1 overflow-y-auto no-scrollbar relative">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none mix-blend-overlay"></div>
         
-        <div className="max-w-[1400px] mx-auto p-8 relative z-10">
+        <div className="max-w-6xl mx-auto p-8 relative z-10">
           <header className="mb-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
              <div className="flex flex-col">
                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1 mb-2">Game Title</label>
@@ -541,7 +541,7 @@ Output ONLY valid JSON, no markdown formatting.
               className="relative"
             >
               {activeTab === 'categories' && (
-                <div className="space-y-6 max-w-[1400px]">
+                <div className="space-y-6">
                 <div className="flex justify-between items-center bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-xl">
                   <h2 className="text-xl font-bold flex items-center gap-3">
                     <LayoutDashboard className="w-6 h-6 text-blue-400" /> 
@@ -704,7 +704,7 @@ Output ONLY valid JSON, no markdown formatting.
             )}
 
             {activeTab === 'settings' && (
-              <div className="space-y-8 max-w-[1400px] pb-10">
+              <div className="space-y-8 max-w-6xl pb-10">
                 <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700/50 backdrop-blur-xl">
                   <h2 className="text-xl font-bold flex items-center gap-3 mb-6">
                     <Settings className="w-6 h-6 text-indigo-400" />
@@ -877,7 +877,7 @@ Output ONLY valid JSON, no markdown formatting.
             )}
 
             {activeTab === 'players' && (
-              <div className="space-y-6 max-w-[1400px]">
+              <div className="space-y-6 max-w-6xl">
                 <div className="flex justify-between items-center bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-xl">
                   <h2 className="text-xl font-bold flex items-center gap-3">
                     <Users className="w-6 h-6 text-purple-400" /> 
@@ -927,7 +927,7 @@ Output ONLY valid JSON, no markdown formatting.
             )}
 
             {activeTab === 'theme' && (
-              <div className="space-y-8 max-w-[1400px] pb-10">
+              <div className="space-y-8 max-w-6xl pb-10">
                 <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700/50 backdrop-blur-xl">
                   <h2 className="text-xl font-bold flex items-center gap-3 mb-6">
                     <Palette className="w-6 h-6 text-pink-400" /> 
