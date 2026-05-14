@@ -63,7 +63,7 @@ export function useSound(isMuted: boolean = false) {
         gainNode.connect(audioCtx.destination);
         
         gainNode.gain.setValueAtTime(0.0, now);
-        gainNode.gain.linearRampToValueAtTime(0.7, now + 0.05); // Faster attack
+        gainNode.gain.linearRampToValueAtTime(1.0, now + 0.05); // Louder
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6); // Softer decay
         
         osc1.start(now);
@@ -83,7 +83,7 @@ export function useSound(isMuted: boolean = false) {
          gainNode.connect(audioCtx.destination);
  
          gainNode.gain.setValueAtTime(0.0, now);
-         gainNode.gain.linearRampToValueAtTime(0.8, now + 0.05);
+         gainNode.gain.linearRampToValueAtTime(1.0, now + 0.05); // Louder
          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
          
          osc.start(now);
@@ -91,7 +91,7 @@ export function useSound(isMuted: boolean = false) {
       } else if (type === 'click') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
-        gainNode.gain.setValueAtTime(0.7, now);
+        gainNode.gain.setValueAtTime(1.0, now); // Louder
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
         osc.start(now);
         osc.stop(now + 0.05);
