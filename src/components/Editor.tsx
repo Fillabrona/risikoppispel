@@ -459,10 +459,10 @@ Output ONLY valid JSON, no markdown formatting.
               </div>
               <button
                 onClick={() => setIsMuted(m => !m)}
-                className={`w-full flex items-center justify-center space-x-3 px-4 py-2 rounded-xl border transition-all duration-300 group shadow-none ${
+                className={`w-full flex items-center justify-center space-x-3 px-4 py-2 rounded-xl border transition-all duration-300 group ${
                     isMuted 
                       ? 'bg-slate-800 border-slate-700/50 text-slate-500 hover:text-slate-300' 
-                      : 'bg-slate-800/40 border-cyan-500/20 text-cyan-400 hover:bg-slate-800'
+                      : 'bg-slate-800/40 border-slate-700/30 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
                   }`}
               >
                 {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
