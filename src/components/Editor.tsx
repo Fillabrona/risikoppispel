@@ -1,5 +1,5 @@
 import { Category, GameState, presetThemes, Theme } from '../types';
-import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users, Palette, CheckCircle2, Copy, Download, Upload, Wand2, Loader2, ChevronDown, Volume2, VolumeX } from 'lucide-react';
+import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users, Palette, CheckCircle2, Copy, Download, Upload, Wand2, Loader2, ChevronDown, Volume2, VolumeX, AlertCircle } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { motion, AnimatePresence } from 'motion/react';
@@ -133,6 +133,7 @@ function CustomColorPicker({ value, onChange }: { value: string, onChange: (val:
 
 export default function Editor({ gameState, hooks, onPlay, isMuted, setIsMuted }: EditorProps) {
   const [activeTab, setActiveTab] = useState<'categories' | 'settings' | 'theme' | 'players'>('categories');
+  const [modal, setModal] = useState<{ title: string; message: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [aiPrompt, setAiPrompt] = useState('');
@@ -376,6 +377,39 @@ Output ONLY valid JSON, no markdown formatting.
 
   return (
     <div className="flex h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
+      {/* Custom Modal */}
+      <AnimatePresence>
+        {modal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setModal(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-slate-900 border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl text-center"
+            >
+              <div className="w-16 h-16 bg-amber-500/10 rounded-3xl flex items-center justify-center mb-8 mx-auto ring-1 ring-amber-500/20">
+                <AlertCircle className="w-8 h-8 text-amber-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">{modal.title}</h3>
+              <p className="text-slate-400 text-sm leading-relaxed mb-10">{modal.message}</p>
+              <button
+                onClick={() => setModal(null)}
+                className="w-full py-4 bg-white text-slate-900 font-black text-sm uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-xl hover:bg-slate-100"
+              >
+                Verstaan
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shadow-xl z-20">
         <div className="p-6 border-b border-slate-800">
@@ -442,8 +476,11 @@ Output ONLY valid JSON, no markdown formatting.
           <button
             onClick={() => {
               if (!canPlay) {
-                if (gameState.players.length === 0) alert("Please add at least one player.");
-                else alert("Game must have at least one category with a question.");
+                if (gameState.players.length === 0) {
+                  setModal({ title: "Speler Benodig", message: "Voeg asseblief ten minste een speler by voordat jy begin." });
+                } else {
+                  setModal({ title: "Geen Vrae", message: "Die speletjie moet ten minste een kategorie met 'n vraag hê." });
+                }
                 return;
               }
               onPlay();
