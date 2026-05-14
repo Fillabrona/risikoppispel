@@ -459,11 +459,11 @@ Output ONLY valid JSON, no markdown formatting.
               </div>
               <button
                 onClick={() => setIsMuted(m => !m)}
-                className={`w-full flex items-center justify-center space-x-3 px-4 py-2 rounded-xl border transition-all duration-300 group ${
-                  isMuted 
-                    ? 'bg-slate-800 border-slate-700/50 text-slate-500 hover:text-slate-300' 
-                    : 'bg-slate-800/40 border-cyan-500/20 text-cyan-400 hover:bg-slate-800 shadow-none'
-                }`}
+                className={`w-full flex items-center justify-center space-x-3 px-4 py-2 rounded-xl border transition-all duration-300 group shadow-none ${
+                    isMuted 
+                      ? 'bg-slate-800 border-slate-700/50 text-slate-500 hover:text-slate-300' 
+                      : 'bg-slate-800/40 border-cyan-500/20 text-cyan-400 hover:bg-slate-800'
+                  }`}
               >
                 {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 <span className="text-[11px] font-bold uppercase tracking-tight">{isMuted ? 'Muted' : 'Playing'}</span>
@@ -534,10 +534,10 @@ Output ONLY valid JSON, no markdown formatting.
           <AnimatePresence mode="wait">
             <motion.div 
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
               className="relative"
             >
               {activeTab === 'categories' && (
