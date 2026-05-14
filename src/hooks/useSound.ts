@@ -62,7 +62,7 @@ export function useSound(isMuted: boolean = false) {
         osc2.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
-        gainNode.gain.setValueAtTime(0.7, now);
+        gainNode.gain.setValueAtTime(0.9, now); // Louder
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
         
         osc1.start(now);
@@ -74,14 +74,14 @@ export function useSound(isMuted: boolean = false) {
          const osc = audioCtx.createOscillator();
          const gainNode = audioCtx.createGain();
  
-         osc.type = 'triangle';
+         osc.type = 'sawtooth'; // Different, more punchy sound
          osc.frequency.setValueAtTime(150, now);
-         osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+         osc.frequency.linearRampToValueAtTime(80, now + 0.3);
          
          osc.connect(gainNode);
          gainNode.connect(audioCtx.destination);
  
-         gainNode.gain.setValueAtTime(0.8, now);
+         gainNode.gain.setValueAtTime(0.9, now); // Louder
          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
          
          osc.start(now);
@@ -89,7 +89,7 @@ export function useSound(isMuted: boolean = false) {
       } else if (type === 'click') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
-        gainNode.gain.setValueAtTime(0.6, now);
+        gainNode.gain.setValueAtTime(0.8, now); // Louder
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
         osc.start(now);
         osc.stop(now + 0.05);
