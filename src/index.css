@@ -49,3 +49,23 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* react-colorful overrides */
+.react-colorful {
+  width: 160px !important;
+  height: 160px !important;
+}
+.react-colorful__saturation {
+  border-radius: 12px 12px 0 0 !important;
+}
+.react-colorful__hue {
+  height: 12px !important;
+  border-radius: 0 0 12px 12px !important;
+}
+.react-colorful__pointer {
+  width: 14px !important;
+  height: 14px !important;
+}
+.react-colorful__pointer-fill {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+

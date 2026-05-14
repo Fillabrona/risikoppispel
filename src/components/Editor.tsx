@@ -1,11 +1,15 @@
 import { Category, GameState, presetThemes, Theme } from '../types';
-import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users, Palette, CheckCircle2, Copy, Download, Upload, Wand2, Loader2, ChevronDown } from 'lucide-react';
+import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users, Palette, CheckCircle2, Copy, Download, Upload, Wand2, Loader2, ChevronDown, Volume2, VolumeX } from 'lucide-react';
 import React, { useState, useRef } from 'react';
+import { HexColorPicker } from 'react-colorful';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface EditorProps {
   gameState: GameState;
   hooks: any;
   onPlay: () => void;
+  isMuted: boolean;
+  setIsMuted: (val: boolean | ((p: boolean) => boolean)) => void;
 }
 
 function CustomSelect({ value, onChange, options, label }: { value: string, onChange: (val: string) => void, options: {value: string, label: string}[], label: string }) {
@@ -61,7 +65,73 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
   );
 }
 
-export default function Editor({ gameState, hooks, onPlay }: EditorProps) {
+function CustomColorPicker({ value, onChange }: { value: string, onChange: (val: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [openUpwards, setOpenUpwards] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleToggle = () => {
+    if (!isOpen && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpwards(spaceBelow < 250);
+    }
+    setIsOpen(!isOpen);
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={handleToggle}
+        className="w-10 h-8 shrink-0 rounded-xl overflow-hidden border border-slate-700/50 p-1 bg-slate-900/50 hover:border-cyan-500/30 transition-all shadow-inner"
+      >
+        <div 
+          className="w-full h-full rounded-lg shadow-lg border border-white/5" 
+          style={{ backgroundColor: value }}
+        />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: openUpwards ? 10 : -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: openUpwards ? 10 : -10 }}
+            className={`absolute z-[60] p-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl origin-center ${
+              openUpwards ? 'bottom-full mb-3' : 'top-full mt-3'
+            }`}
+          >
+            <HexColorPicker color={value} onChange={onChange} />
+            <div className="mt-2 flex items-center justify-between gap-2">
+               <div className="flex-1 px-2 py-1.5 bg-slate-950 rounded-lg text-[10px] font-mono text-slate-400 border border-slate-800 uppercase">
+                 {value}
+               </div>
+               <button 
+                 onClick={() => setIsOpen(false)}
+                 className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold rounded-lg transition-colors uppercase"
+               >
+                 Done
+               </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export default function Editor({ gameState, hooks, onPlay, isMuted, setIsMuted }: EditorProps) {
   const [activeTab, setActiveTab] = useState<'categories' | 'settings' | 'theme' | 'players'>('categories');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -300,6 +370,10 @@ Output ONLY valid JSON, no markdown formatting.
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const canPlay = gameState.players.length > 0 && 
+    gameState.categories.length > 0 && 
+    gameState.categories.some(c => c.questions.length > 0);
+
   return (
     <div className="flex h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
       {/* Sidebar */}
@@ -311,7 +385,7 @@ Output ONLY valid JSON, no markdown formatting.
           <p className="text-xs text-slate-500 font-medium mt-1 uppercase tracking-widest">Game Editor</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-1 relative">
           {[
             { id: 'categories', icon: LayoutDashboard, label: 'Categories & Board' },
             { id: 'settings', icon: Settings, label: 'Game Settings & AI' },
@@ -324,17 +398,37 @@ Output ONLY valid JSON, no markdown formatting.
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  isActive 
-                    ? 'bg-blue-600/10 text-blue-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-blue-500/20' 
-                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 relative group ${
+                  isActive ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : 'text-slate-500'}`} />
-                <span>{tab.label}</span>
+                {isActive && (
+                  <motion.div 
+                    layoutId="sidebar-active"
+                    className="absolute inset-0 bg-blue-600/10 ring-1 ring-blue-500/20 rounded-xl z-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <Icon className={`w-5 h-5 relative z-10 transition-colors ${isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-400'}`} />
+                <span className="relative z-10">{tab.label}</span>
               </button>
             );
           })}
+
+          <div className="pt-6 px-1">
+            <div className="bg-slate-950/20 rounded-2xl p-4 border border-slate-800/40 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-3 px-1">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Audio Mode</span>
+              </div>
+              <button
+                onClick={() => setIsMuted(m => !m)}
+                className="w-full flex items-center justify-center space-x-3 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl border border-slate-700/50 transition-all hover:scale-[1.02] active:scale-95 group shadow-sm"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                <span className="text-[11px] font-bold uppercase tracking-tight">{isMuted ? 'Unmute' : 'Mute'}</span>
+              </button>
+            </div>
+          </div>
         </nav>
 
         <div className="p-4 border-t border-slate-800 space-y-3">
@@ -346,8 +440,19 @@ Output ONLY valid JSON, no markdown formatting.
             <span>Reset Board</span>
           </button>
           <button
-            onClick={onPlay}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-3 text-sm font-bold text-slate-900 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 rounded-xl transition-all transform hover:-translate-y-0.5"
+            onClick={() => {
+              if (!canPlay) {
+                if (gameState.players.length === 0) alert("Please add at least one player.");
+                else alert("Game must have at least one category with a question.");
+                return;
+              }
+              onPlay();
+            }}
+            className={`w-full flex items-center justify-center space-x-2 px-4 py-3 text-sm font-bold rounded-xl transition-all transform ${
+              canPlay 
+                ? 'text-slate-900 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 hover:-translate-y-0.5' 
+                : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+            }`}
           >
             <Play className="w-5 h-5 fill-current" />
             <span>START GAME</span>
@@ -812,28 +917,35 @@ Output ONLY valid JSON, no markdown formatting.
                       const val = String((gameState.theme as any)[key] || '');
                       const isHex = val.startsWith('#') && (val.length === 4 || val.length === 7);
                       return (
-                      <div key={key} className="flex flex-col space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest break-words">
-                          {key.replace(/([A-Z])/g, ' $1').trim()}
-                        </label>
-                        <div className="flex space-x-3 items-stretch">
-                           {isHex && (
-                             <div className="w-12 shrink-0 rounded-xl overflow-hidden border border-slate-700 p-0.5 bg-slate-800 relative">
-                               <input
-                                 type="color"
-                                 value={val}
-                                 onChange={(e) => hooks.updateTheme({ [key]: e.target.value })}
-                                 className="w-full h-full cursor-pointer bg-transparent border-0 opacity-0 absolute inset-0 z-10"
-                               />
-                               <div className="w-full h-full rounded-lg" style={{ backgroundColor: val }}></div>
+                        <div key={key} className="flex flex-col gap-2.5 group/color">
+                           <div className="flex items-center justify-between">
+                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] break-words">
+                               {key.replace(/([A-Z])/g, ' $1').trim()}
+                             </label>
+                             <div className="flex gap-1.5">
+                               {['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#ffffff', '#000000'].map(swatch => (
+                                 <button 
+                                   key={swatch}
+                                   onClick={() => hooks.updateTheme({ [key]: swatch })}
+                                   className="w-3.5 h-3.5 rounded-full border border-white/5 hover:scale-125 transition-all shadow-sm active:scale-90"
+                                   style={{ backgroundColor: swatch }}
+                                 />
+                               ))}
                              </div>
-                           )}
+                           </div>
+                           <div className="flex space-x-2 items-stretch">
+                            {isHex && (
+                              <CustomColorPicker 
+                                value={val}
+                                onChange={(newVal) => hooks.updateTheme({ [key]: newVal })}
+                              />
+                            )}
                           <input
                             type="text"
                             value={val}
                             onChange={(e) => hooks.updateTheme({ [key]: e.target.value })}
-                            className="flex-1 px-4 py-2 bg-slate-950 border border-slate-700 rounded-xl focus:ring-2 focus:ring-pink-500 font-mono text-sm text-white placeholder-slate-600 outline-none transition-all"
-                            placeholder="e.g. #FF0000 or rgba(0,0,0,0.5)"
+                            className="flex-1 px-4 py-2 bg-slate-950/40 border border-slate-700/40 rounded-2xl focus:ring-1 focus:ring-cyan-500/30 font-mono text-[11px] text-white placeholder-slate-800 outline-none transition-all shadow-inner"
+                            placeholder="#HEX"
                           />
                         </div>
                       </div>

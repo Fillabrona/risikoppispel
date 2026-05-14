@@ -10,6 +10,8 @@ interface PlayBoardProps {
   gameState: GameState;
   hooks: any;
   onEdit: () => void;
+  isMuted: boolean;
+  setIsMuted: (val: boolean | ((p: boolean) => boolean)) => void;
 }
 
 const TypewriterText = ({ text }: { text: string }) => {
@@ -29,16 +31,14 @@ const TypewriterText = ({ text }: { text: string }) => {
   return <>{displayedText}</>;
 };
 
-export default function PlayBoard({ gameState, hooks, onEdit }: PlayBoardProps) {
+export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMuted }: PlayBoardProps) {
   const [activeQuestion, setActiveQuestion] = useState<{
     catId: string;
     question: Question;
   } | null>(null);
   const [displayStage, setDisplayStage] = useState<'bonus_intro' | 'question' | 'answer'>('question');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
   const { playSound } = useSound(isMuted);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const [timerValue, setTimerValue] = useState<number | null>(null);
   const [triggeredBonusIds, setTriggeredBonusIds] = useState<Set<string>>(new Set());
   
@@ -57,18 +57,6 @@ export default function PlayBoard({ gameState, hooks, onEdit }: PlayBoardProps) 
       playSound('penalize');
     }
   }, [activeQuestion, displayStage, timerValue, gameState.settings?.timerEnabled, playSound]);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      const src = allAnswered ? "https://fillabrona.github.io/victory.m4a" : "https://fillabrona.github.io/jeopardy.m4a";
-      if (!audioRef.current.src.includes(src)) {
-        audioRef.current.src = src;
-        audioRef.current.loop = !allAnswered;
-        audioRef.current.play().catch(() => {});
-      }
-      audioRef.current.muted = isMuted;
-    }
-  }, [allAnswered, isMuted]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -258,16 +246,6 @@ export default function PlayBoard({ gameState, hooks, onEdit }: PlayBoardProps) 
         '--color-active-text': gameState.theme.activeText,
       } as React.CSSProperties}
     >
-      {/* Audio Element for Background Music */}
-      <audio
-        ref={audioRef}
-        src="https://fillabrona.github.io/jeopardy.m4a"
-        autoPlay
-        loop
-        muted={isMuted}
-        className="hidden"
-      />
-
       {/* Top Bar Navigation */}
       <div className="absolute top-0 right-0 p-4 flex gap-2 z-50 opacity-20 hover:opacity-100 transition-opacity duration-300">
         <button onClick={() => { playSound('click'); setIsMuted(m => !m); }} className="bg-black/30 hover:bg-black/50 p-2.5 rounded-xl text-white transition-all border border-white/10 hover:border-white/30">
@@ -363,10 +341,6 @@ export default function PlayBoard({ gameState, hooks, onEdit }: PlayBoardProps) 
             {/* Gradient Overlay for Fade to Black */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-transparent pointer-events-none" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
-
-            <div className="absolute top-2 left-3 z-10 text-white/50 text-xs font-bold font-mono tracking-widest">
-              P{idx + 1}
-            </div>
             
             <div className="z-10 relative pt-2 text-sm sm:text-base lg:text-lg font-bold uppercase tracking-widest w-full text-center mb-1 text-slate-100 line-clamp-1 drop-shadow-sm">
               {player.name}
@@ -475,7 +449,7 @@ export default function PlayBoard({ gameState, hooks, onEdit }: PlayBoardProps) 
                 className="w-full max-w-screen-2xl mx-auto grid mt-8 gap-4 z-10"
                 style={{ gridTemplateColumns: `repeat(${gameState.players.length + 1}, 1fr)` }}
               >
-                {gameState.players.map((player, idx) => (
+                {gameState.players.map((player) => (
                   <div key={player.id} className="flex flex-col gap-3 group/judge">
                      <button
                       onClick={() => handleAwardPoints(player.id, activeQuestion.question.bonusPoints || activeQuestion.question.points)}
@@ -485,7 +459,6 @@ export default function PlayBoard({ gameState, hooks, onEdit }: PlayBoardProps) 
                       <span className="relative z-10 flex items-center justify-center gap-2">
                         {player.name} <span className="text-emerald-900/50">+</span>
                       </span>
-                      <div className="absolute top-3 left-4 text-emerald-950/40 text-xs font-bold tracking-widest z-10">P{idx + 1}</div>
                     </button>
                     <button
                       onClick={() => handleDeductPoints(player.id, activeQuestion.question.bonusPoints || activeQuestion.question.points)}
@@ -592,18 +565,18 @@ export default function PlayBoard({ gameState, hooks, onEdit }: PlayBoardProps) 
                     )
                   })}
               </div>
-              <div className="flex flex-col items-center gap-4 mt-16 z-20">
+              <div className="flex flex-col items-center gap-6 mt-16 z-20">
                 <button 
                   onClick={() => { playSound('click'); hooks.resetBoard(); }} 
-                  className="px-12 py-5 bg-gradient-to-r from-emerald-400 to-emerald-600 hover:from-emerald-300 hover:to-emerald-500 text-white rounded-full font-black text-xl uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_8px_0_rgb(4,120,87),0_15px_20px_rgba(4,120,87,0.4)] active:shadow-[0_0px_0_rgb(4,120,87),0_0px_0px_rgba(4,120,87,0.4)] active:translate-y-2"
+                  className="px-10 py-4 bg-white text-black hover:bg-slate-100 rounded-2xl font-black text-lg uppercase tracking-widest transition-all active:scale-95 shadow-lg border border-black/10"
                 >
                   Play Again
                 </button>
                 <button 
                   onClick={() => { playSound('click'); hooks.resetBoard(); onEdit(); }} 
-                  className="mt-4 px-6 py-3 text-white/60 hover:text-white transition-colors uppercase tracking-widest text-sm font-bold"
+                  className="px-6 py-2 text-white/40 hover:text-white transition-colors uppercase tracking-widest text-xs font-bold"
                 >
-                  Back to Editor
+                  Exit to Editor
                 </button>
               </div>
             </div>
