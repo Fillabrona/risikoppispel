@@ -704,7 +704,7 @@ Output ONLY valid JSON, no markdown formatting.
             )}
 
             {activeTab === 'settings' && (
-              <div className="space-y-8 max-w-6xl pb-10">
+              <div className="space-y-8 max-w-4xl pb-10">
                 <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700/50 backdrop-blur-xl">
                   <h2 className="text-xl font-bold flex items-center gap-3 mb-6">
                     <Settings className="w-6 h-6 text-indigo-400" />
@@ -877,7 +877,7 @@ Output ONLY valid JSON, no markdown formatting.
             )}
 
             {activeTab === 'players' && (
-              <div className="space-y-6 max-w-6xl">
+              <div className="space-y-6 max-w-3xl">
                 <div className="flex justify-between items-center bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-xl">
                   <h2 className="text-xl font-bold flex items-center gap-3">
                     <Users className="w-6 h-6 text-purple-400" /> 
@@ -927,7 +927,7 @@ Output ONLY valid JSON, no markdown formatting.
             )}
 
             {activeTab === 'theme' && (
-              <div className="space-y-8 max-w-6xl pb-10">
+              <div className="space-y-8 max-w-4xl pb-10">
                 <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700/50 backdrop-blur-xl">
                   <h2 className="text-xl font-bold flex items-center gap-3 mb-6">
                     <Palette className="w-6 h-6 text-pink-400" /> 
