@@ -508,15 +508,15 @@ Output ONLY valid JSON, no markdown formatting.
       <main className="flex-1 overflow-y-auto no-scrollbar relative">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none mix-blend-overlay"></div>
         
-        <div className="max-w-[1400px] mx-auto p-8 relative z-10">
-          <header className="mb-10 flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between">
-             <div className="flex flex-col flex-1">
+        <div className="max-w-6xl mx-auto p-8 relative z-10">
+          <header className="mb-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+             <div className="flex flex-col">
                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1 mb-2">Game Title</label>
                <input
                  type="text"
                  value={gameState.title}
                  onChange={(e) => hooks.updateTitle(e.target.value)}
-                 className="text-4xl sm:text-5xl font-extrabold bg-transparent text-white border-0 focus:ring-0 p-0 placeholder-slate-700 outline-none w-full"
+                 className="text-4xl font-extrabold bg-transparent text-white border-0 focus:ring-0 p-0 placeholder-slate-700 outline-none w-full max-w-xl"
                  placeholder="Enter Game Title"
                />
              </div>
@@ -704,7 +704,7 @@ Output ONLY valid JSON, no markdown formatting.
             )}
 
             {activeTab === 'settings' && (
-              <div className="space-y-8 pb-10">
+              <div className="space-y-8 max-w-4xl pb-10">
                 <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700/50 backdrop-blur-xl">
                   <h2 className="text-xl font-bold flex items-center gap-3 mb-6">
                     <Settings className="w-6 h-6 text-indigo-400" />
@@ -877,7 +877,7 @@ Output ONLY valid JSON, no markdown formatting.
             )}
 
             {activeTab === 'players' && (
-              <div className="space-y-6">
+              <div className="space-y-6 max-w-3xl">
                 <div className="flex justify-between items-center bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-xl">
                   <h2 className="text-xl font-bold flex items-center gap-3">
                     <Users className="w-6 h-6 text-purple-400" /> 
@@ -892,7 +892,7 @@ Output ONLY valid JSON, no markdown formatting.
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                <div className="grid gap-4">
                   {gameState.players.map((player, idx) => (
                     <div key={player.id} className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 bg-slate-800/40 p-5 rounded-2xl border border-slate-700 shadow-lg backdrop-blur-xl group hover:border-slate-600 transition-colors">
                       <div className="flex items-center justify-center shrink-0">
@@ -927,7 +927,7 @@ Output ONLY valid JSON, no markdown formatting.
             )}
 
             {activeTab === 'theme' && (
-              <div className="space-y-8 pb-10">
+              <div className="space-y-8 max-w-4xl pb-10">
                 <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700/50 backdrop-blur-xl">
                   <h2 className="text-xl font-bold flex items-center gap-3 mb-6">
                     <Palette className="w-6 h-6 text-pink-400" /> 
