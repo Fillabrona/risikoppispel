@@ -84,7 +84,8 @@ function CustomColorPicker({ value, onChange }: { value: string, onChange: (val:
     if (!isOpen && ref.current) {
       const rect = ref.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      setOpenUpwards(spaceBelow < 280);
+      // smarter: if less than 220px below, open upward
+      setOpenUpwards(spaceBelow < 220);
     }
     setIsOpen(!isOpen);
   };
@@ -94,10 +95,10 @@ function CustomColorPicker({ value, onChange }: { value: string, onChange: (val:
       <button
         type="button"
         onClick={handleToggle}
-        className="w-10 h-8 shrink-0 rounded-xl overflow-hidden border border-slate-700/50 p-1 bg-slate-900/50 hover:border-cyan-500/30 transition-all shadow-inner"
+        className="w-11 h-9 shrink-0 rounded-2xl overflow-hidden border border-slate-700/50 p-1 bg-slate-900/50 hover:border-cyan-500/30 transition-all shadow-inner group-focus-within/color:border-cyan-500/30"
       >
         <div 
-          className="w-full h-full rounded-lg shadow-lg border border-white/5" 
+          className="w-full h-full rounded-xl shadow-lg border border-white/5" 
           style={{ backgroundColor: value }}
         />
       </button>
@@ -105,18 +106,16 @@ function CustomColorPicker({ value, onChange }: { value: string, onChange: (val:
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: openUpwards ? 10 : -10 }}
+            initial={{ opacity: 0, scale: 0.9, y: openUpwards ? 10 : -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: openUpwards ? 10 : -10 }}
-            className={`absolute z-[60] p-3 bg-slate-900 border border-slate-700/50 rounded-3xl shadow-2xl origin-center backdrop-blur-xl ${
-              openUpwards ? 'bottom-full mb-3' : 'top-full mt-3'
+            exit={{ opacity: 0, scale: 0.9, y: openUpwards ? 10 : -10 }}
+            className={`absolute z-[60] p-3 bg-slate-900 border border-slate-700 rounded-[2rem] shadow-2xl origin-center backdrop-blur-2xl ${
+              openUpwards ? 'bottom-full mb-4' : 'top-full mt-4'
             }`}
           >
             <HexColorPicker color={value} onChange={onChange} />
-            <div className="mt-3 flex items-center justify-between gap-3">
-               <div className="flex-1 px-3 py-1.5 bg-slate-950 rounded-xl text-[10px] font-mono text-slate-400 border border-slate-800 uppercase text-center">
-                 {value}
-               </div>
+            <div className="mt-4 px-2 py-1.5 bg-slate-950 rounded-xl text-[10px] font-mono text-slate-400 border border-slate-800 uppercase text-center tracking-widest shadow-inner">
+              {value}
             </div>
           </motion.div>
         )}
@@ -416,47 +415,49 @@ Output ONLY valid JSON, no markdown formatting.
           <p className="text-xs text-slate-500 font-medium mt-1 uppercase tracking-widest">Game Editor</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 relative">
+        <nav className="flex-1 p-2 space-y-1 relative">
           {[
-            { id: 'categories', icon: LayoutDashboard, label: 'Categories & Board' },
-            { id: 'settings', icon: Settings, label: 'Game Settings & AI' },
-            { id: 'players', icon: Users, label: 'Players' },
-            { id: 'theme', icon: Palette, label: 'Theme & Styling' },
+            { id: 'categories', icon: LayoutDashboard, label: 'Borde & Vrae' },
+            { id: 'players', icon: Users, label: 'Spelers & Tellings' },
+            { id: 'theme', icon: Palette, label: 'Tema Ontwerp' },
+            { id: 'settings', icon: Settings, label: 'Instellings & AI' },
           ].map((tab) => {
-            const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 relative group ${
-                  isActive ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'
+                className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all duration-300 relative group truncate ${
+                  isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
                 {isActive && (
                   <motion.div 
                     layoutId="sidebar-active"
-                    className="absolute inset-0 bg-blue-600/10 ring-1 ring-blue-500/20 rounded-xl z-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    className="absolute inset-0 bg-blue-600 shadow-[0_4px_20px_rgba(37,99,235,0.3)] rounded-2xl z-0"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                   />
                 )}
-                <Icon className={`w-5 h-5 relative z-10 transition-colors ${isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-400'}`} />
-                <span className="relative z-10">{tab.label}</span>
+                <Icon className={`w-5 h-5 relative z-10 transition-colors ${isActive ? 'text-white' : 'text-slate-600 group-hover:text-slate-400'}`} />
+                <span className="relative z-10 truncate">{tab.label}</span>
               </button>
             );
           })}
 
-          <div className="pt-6 px-1">
-            <div className="bg-slate-950/20 rounded-2xl p-4 border border-slate-800/40 backdrop-blur-sm">
-              <div className="flex items-center justify-between mb-3 px-1">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Audio Mode</span>
-              </div>
+          <div className="pt-8 px-2">
+            <div className="bg-slate-950/40 rounded-3xl p-5 border border-slate-800/60 backdrop-blur-xl">
+              <span className="block text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4 text-center">Klank Beheer</span>
               <button
                 onClick={() => setIsMuted(m => !m)}
-                className="w-full flex items-center justify-center space-x-3 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl border border-slate-700/50 transition-all hover:scale-[1.02] active:scale-95 group shadow-sm"
+                className={`w-full flex items-center justify-center space-x-3 px-4 py-3.5 rounded-2xl border transition-all duration-300 group ${
+                  isMuted 
+                    ? 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300' 
+                    : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]'
+                }`}
               >
                 {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                <span className="text-[11px] font-bold uppercase tracking-tight">{isMuted ? 'Unmute' : 'Mute'}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">{isMuted ? 'Muted' : 'Playing'}</span>
               </button>
             </div>
           </div>

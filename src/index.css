@@ -51,24 +51,22 @@ html, body {
 
 /* react-colorful overrides */
 .react-colorful {
-  width: 160px !important;
-  height: 160px !important;
+  width: 140px !important;
+  height: 140px !important;
 }
 .react-colorful__saturation {
   border-radius: 12px 12px 0 0 !important;
+  border-bottom: 2px solid rgba(0,0,0,0.1) !important;
 }
 .react-colorful__hue {
-  height: 12px !important;
+  height: 10px !important;
   border-radius: 0 0 12px 12px !important;
 }
 .react-colorful__pointer {
-  width: 12px !important;
-  height: 12px !important;
+  width: 10px !important;
+  height: 10px !important;
 }
 .react-colorful__pointer-fill {
-  box-shadow: 0 0 0 1.5px #fff, 0 1px 4px rgba(0, 0, 0, 0.3) !important;
-}
-.react-colorful__saturation {
-  border-bottom: 2px solid rgba(0,0,0,0.1);
+  box-shadow: 0 0 0 1.5px #fff, 0 1px 3px rgba(0, 0, 0, 0.4) !important;
 }
 
