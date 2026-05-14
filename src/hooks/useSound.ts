@@ -62,34 +62,36 @@ export function useSound(isMuted: boolean = false) {
         osc2.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
-        gainNode.gain.setValueAtTime(0.9, now); // Louder
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        gainNode.gain.setValueAtTime(0.0, now);
+        gainNode.gain.linearRampToValueAtTime(0.7, now + 0.05); // Faster attack
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6); // Softer decay
         
         osc1.start(now);
         osc2.start(now);
-        osc1.stop(now + 0.4);
-        osc2.stop(now + 0.4);
+        osc1.stop(now + 0.6);
+        osc2.stop(now + 0.6);
       } else if (type === 'penalize') {
-         // Modern, soft error tone (deeper decay)
+         // Modern, soft error tone (downward, mellow sine)
          const osc = audioCtx.createOscillator();
          const gainNode = audioCtx.createGain();
  
-         osc.type = 'sawtooth'; // Different, more punchy sound
-         osc.frequency.setValueAtTime(150, now);
-         osc.frequency.linearRampToValueAtTime(80, now + 0.3);
+         osc.type = 'sine'; 
+         osc.frequency.setValueAtTime(220, now); // A3
+         osc.frequency.exponentialRampToValueAtTime(110, now + 0.4);
          
          osc.connect(gainNode);
          gainNode.connect(audioCtx.destination);
  
-         gainNode.gain.setValueAtTime(0.9, now); // Louder
-         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+         gainNode.gain.setValueAtTime(0.0, now);
+         gainNode.gain.linearRampToValueAtTime(0.8, now + 0.05);
+         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
          
          osc.start(now);
-         osc.stop(now + 0.3);
+         osc.stop(now + 0.4);
       } else if (type === 'click') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
-        gainNode.gain.setValueAtTime(0.8, now); // Louder
+        gainNode.gain.setValueAtTime(0.7, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
         osc.start(now);
         osc.stop(now + 0.05);
