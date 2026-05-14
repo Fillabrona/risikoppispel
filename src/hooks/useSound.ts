@@ -34,7 +34,7 @@ export function useSound(isMuted: boolean = false) {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(400, now);
         osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
-        gainNode.gain.setValueAtTime(0.5, now);
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
         osc.start(now);
         osc.stop(now + 0.1);
@@ -42,55 +42,49 @@ export function useSound(isMuted: boolean = false) {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(300, now);
         osc.frequency.exponentialRampToValueAtTime(600, now + 0.3);
-        gainNode.gain.setValueAtTime(0.4, now);
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
         osc.start(now);
         osc.stop(now + 0.3);
       } else if (type === 'award') {
-        // High quality "ding-ding" chime
+        // More sophisticated chime
+        const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        frequencies.forEach((freq, i) => {
+          const o = audioCtx!.createOscillator();
+          const g = audioCtx!.createGain();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(freq, now + i * 0.05);
+          g.gain.setValueAtTime(0.1, now + i * 0.05);
+          g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.05 + 0.4);
+          o.connect(g);
+          g.connect(audioCtx!.destination);
+          o.start(now + i * 0.05);
+          o.stop(now + i * 0.05 + 0.4);
+        });
+      } else if (type === 'penalize') {
+        // Modern "wrong" sound: deeper, cleaner pulse
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.linearRampToValueAtTime(70, now + 0.4);
+        
         const osc2 = audioCtx.createOscillator();
         const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(145, now);
+        osc2.frequency.linearRampToValueAtTime(75, now + 0.4);
+        
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        gain2.gain.setValueAtTime(0.3, now);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        
         osc2.connect(gain2);
         gain2.connect(audioCtx.destination);
         
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, now); // C5
-        osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.1); // C6
-        
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(659.25, now); // E5
-        osc2.frequency.exponentialRampToValueAtTime(1318.51, now + 0.1); // E6
-        
-        gainNode.gain.setValueAtTime(0.4, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-        gain2.gain.setValueAtTime(0.3, now);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-        
         osc.start(now);
         osc2.start(now);
-        osc.stop(now + 0.5);
-        osc2.stop(now + 0.5);
-      } else if (type === 'penalize') {
-        // Classic buzzer sound
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(120, now);
-        
-        const mod = audioCtx.createOscillator();
-        mod.type = 'square';
-        mod.frequency.value = 60;
-        const modGain = audioCtx.createGain();
-        modGain.gain.value = 40;
-        mod.connect(modGain);
-        modGain.connect(osc.frequency);
-        
-        gainNode.gain.setValueAtTime(0.6, now);
-        gainNode.gain.linearRampToValueAtTime(0.6, now + 0.4);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-        
-        mod.start(now);
-        osc.start(now);
-        mod.stop(now + 0.6);
-        osc.stop(now + 0.6);
+        osc.stop(now + 0.4);
+        osc2.stop(now + 0.4);
       } else if (type === 'click') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, now);
