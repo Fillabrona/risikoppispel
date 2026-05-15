@@ -42,8 +42,13 @@ export default function BuzzerView() {
       if (user) setIsAuth(true);
     });
     loginAnonymously();
-    const pid = localStorage.getItem('participantId') || Math.random().toString(36).substring(2, 9);
-    localStorage.setItem('participantId', pid);
+
+    // Use a stable participantId from localStorage
+    let pid = localStorage.getItem('participantId');
+    if (!pid) {
+      pid = 'p-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now();
+      localStorage.setItem('participantId', pid);
+    }
     setParticipantId(pid);
 
     const savedName = localStorage.getItem('participantName');
@@ -54,46 +59,22 @@ export default function BuzzerView() {
     return () => unsubAuth();
   }, []);
 
-  // Auto-join if session exists and is still valid in Firestore
+  // Auto-join logic
   useEffect(() => {
     if (isAuth && gameId && participantId && !joined) {
       const savedName = localStorage.getItem('participantName');
-      const savedVoice = localStorage.getItem('participantVoice');
-      
       if (savedName) {
         const pRef = doc(db, 'games', gameId, 'participants', participantId);
         getDoc(pRef).then(snap => {
           if (snap.exists()) {
-             setJoined(true);
-             setName(savedName);
-             if (savedVoice) setVoiceUri(savedVoice);
-          } else {
-             // Host might have reset participants, let's re-join automatically if it's the same game
-             // But we wait for user to click join unless they were ALREADY joined in this session
+            setJoined(true);
           }
-        });
+        }).catch(err => console.error("Auto-join check failed:", err));
       }
     }
   }, [isAuth, gameId, participantId, joined]);
 
-  // Remove player when they close the tab
-  useEffect(() => {
-    if (!gameId || !participantId || !joined) return;
-
-    const handleUnload = () => {
-      // We use navigator.sendBeacon or a synchronous delete if possible, 
-      // but Firestore deleteDoc is async. In modern browsers, we can try to fire and forget.
-      const pRef = doc(db, 'games', gameId, 'participants', participantId);
-      deleteDoc(pRef);
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleUnload);
-    };
-  }, [gameId, participantId, joined]);
-
-  // Sync Participant Data (Score, etc)
+  // Sync Participant Data & Lifecycle
   useEffect(() => {
     if (!gameId || !participantId || !joined) return;
     
@@ -115,36 +96,24 @@ export default function BuzzerView() {
           }
           setMyScore(data.score);
         }
+      } else {
+         // If host removed us, we should drop back to join screen
+         setJoined(false);
       }
     });
 
-    return () => unsub();
-  }, [gameId, participantId, joined, myScore]);
-
-  // Clear notification
-  useEffect(() => {
-    if (scoreNotification) {
-      const timer = setTimeout(() => setScoreNotification(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [scoreNotification]);
-
-  // Handle cleanup on leave
-  useEffect(() => {
-    if (!gameId || !participantId || !joined) return;
-
     const cleanup = () => {
-      const pRef = doc(db, 'games', gameId, 'participants', participantId);
       deleteDoc(pRef).catch(() => {});
     };
 
     window.addEventListener('beforeunload', cleanup);
     return () => {
+      unsub();
       window.removeEventListener('beforeunload', cleanup);
-      cleanup();
     };
-  }, [gameId, participantId, joined]);
+  }, [gameId, participantId, joined, myScore]);
 
+  // Game rules & buzzer sync
   useEffect(() => {
     if (!gameId || !isAuth) return;
     const unsub = onSnapshot(doc(db, 'games', gameId), (docSnap) => {
@@ -157,12 +126,20 @@ export default function BuzzerView() {
         } else if (data.firstBuzz?.participantId === participantId) {
           setMyBuzz(true);
         } else if (data.firstBuzz) {
-          setIsAnswering(false); // Someone else buzzed
+          setIsAnswering(false); 
         }
       }
     });
     return () => unsub();
   }, [gameId, participantId, isAuth]);
+
+  // Clear score notification
+  useEffect(() => {
+    if (scoreNotification) {
+      const timer = setTimeout(() => setScoreNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [scoreNotification]);
 
   const startRecording = async () => {
     try {
@@ -213,24 +190,30 @@ export default function BuzzerView() {
     const n = overrideName || name;
     const v = overrideVoice || voiceUri;
 
-    if (!n.trim() || !gameId) return;
+    if (!n.trim() || !gameId || !participantId) return;
     
     // Save to session
     localStorage.setItem('participantName', n);
     localStorage.setItem('participantVoice', v || '');
 
-    // Generate avatar URL similar to existing app logic
-    const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(n)}&backgroundColor=transparent`;
-    
-    const pRef = doc(db, 'games', gameId, 'participants', participantId);
-    await setDoc(pRef, {
-      name: n,
-      avatarUrl,
-      voiceUri: v,
-      joinedAt: new Date().toISOString(),
-      score: myScore || 0
-    }, { merge: true });
-    setJoined(true);
+    try {
+      // Generate avatar URL
+      const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(n)}&backgroundColor=transparent`;
+      
+      const pRef = doc(db, 'games', gameId, 'participants', participantId);
+      await setDoc(pRef, {
+        name: n,
+        avatarUrl,
+        voiceUri: v || '',
+        joinedAt: new Date().toISOString(),
+        score: myScore || 0
+      }, { merge: true });
+      
+      setJoined(true);
+    } catch (err) {
+      console.error("Join failed:", err);
+      alert("Failed to join. Please try again.");
+    }
   };
 
   const buzzOut = async () => {
@@ -305,12 +288,12 @@ export default function BuzzerView() {
             </div>
             
             <button 
-              onClick={handleJoin}
-              disabled={!name.trim() || !voiceUri || !isAuth}
+              onClick={() => handleJoin()}
+              disabled={!name.trim() || !isAuth}
               className="w-full bg-cyan-500 text-slate-900 font-bold py-4 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all mt-4 flex items-center justify-center gap-2"
             >
-              {!isAuth && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isAuth ? 'Enter Lobby' : 'Connecting...'}
+              {!isAuth && <Loader2 className="w-5 h-5 animate-spin" />}
+              {isAuth ? (localStorage.getItem('participantName') ? `Enter Lobby as ${localStorage.getItem('participantName')}` : 'Enter Lobby') : 'Connecting...'}
             </button>
           </div>
         </div>
