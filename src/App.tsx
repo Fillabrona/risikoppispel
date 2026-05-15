@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Editor from './components/Editor';
 import PlayBoard from './components/PlayBoard';
+import BuzzerView from './components/BuzzerView';
 import { useGameState } from './hooks/useGameState';
 import { Volume2, VolumeX, Music } from 'lucide-react';
 
-export default function App() {
+function HostView() {
   const { gameState, ...hooks } = useGameState();
   const [mode, setMode] = useState<'editor' | 'play'>('editor');
   const [isMuted, setIsMuted] = useState(() => {
@@ -111,6 +113,15 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HostView />} />
+      <Route path="/buzzer/:gameId" element={<BuzzerView />} />
+    </Routes>
   );
 }
 

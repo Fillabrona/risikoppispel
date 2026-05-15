@@ -50,7 +50,11 @@ export function useGameState() {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+    } catch (e) {
+      console.error("Failed to save state:", e);
+    }
   }, [gameState]);
 
   const updateTitle = (title: string) => setGameState((s) => ({ ...s, title }));
@@ -185,11 +189,20 @@ export function useGameState() {
     });
   };
 
-  const addPlayer = () => {
-    setGameState((s) => ({
-      ...s,
-      players: [...s.players, { id: `p-${Date.now()}`, name: `Player ${s.players.length + 1}`, score: 0 }],
-    }));
+  const addPlayer = (name?: any, id?: any) => {
+    setGameState((s) => {
+      const playerName = typeof name === 'string' ? name : `Player ${s.players.length + 1}`;
+      const playerId = typeof id === 'string' ? id : `p-${Date.now()}`;
+      const newPlayer = {
+        id: playerId,
+        name: playerName,
+        score: 0
+      };
+      return {
+        ...s,
+        players: [...s.players, newPlayer],
+      };
+    });
   };
 
   const removePlayer = (playerId: string) => {

@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { GameState, Question } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Maximize, Minimize, Settings, X, Volume2, VolumeX, Trophy, Medal, Award } from 'lucide-react';
+import { Maximize, Minimize, Settings, X, Volume2, VolumeX, Trophy, Medal, Award, QrCode } from 'lucide-react';
 import React from 'react';
 import { useSound } from '../hooks/useSound';
 import Confetti from 'react-confetti';
+import { QRCodeSVG } from 'qrcode.react';
+import { doc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { db, loginAnonymously } from '../lib/firebase';
 
 interface PlayBoardProps {
   gameState: GameState;
@@ -43,12 +46,49 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
   const [triggeredBonusIds, setTriggeredBonusIds] = useState<Set<string>>(new Set());
   
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Hosted Game Logic
+  const [gameId, setGameId] = useState<string>('');
+  const [showQR, setShowQR] = useState(false);
+  const [hostParams, setHostParams] = useState<any>(null);
+  const firstBuzzRef = useRef<any>(null);
+
+  useEffect(() => {
+    loginAnonymously();
+    const gid = Math.random().toString(36).substring(2, 6).toUpperCase();
+    setGameId(gid);
+    
+    const gRef = doc(db, 'games', gid);
+    setDoc(gRef, { status: 'playing', activeQuestion: null, firstBuzz: null });
+
+    const unsub = onSnapshot(gRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setHostParams(data);
+        
+        // Handle new buzzes
+        if (data.firstBuzz && (!firstBuzzRef.current || firstBuzzRef.current.time !== data.firstBuzz.time)) {
+          firstBuzzRef.current = data.firstBuzz;
+          if (data.firstBuzz.voiceUri) {
+            const audio = new Audio(data.firstBuzz.voiceUri);
+            audio.play().catch(e => console.error(e));
+          } else {
+            playSound('award'); // fallback if no voice
+          }
+        } else if (!data.firstBuzz) {
+          firstBuzzRef.current = null;
+        }
+      }
+    });
+    return () => unsub();
+  }, [playSound]);
 
   const allAnswered = gameState.categories.length > 0 && gameState.categories.every(cat => cat.questions.length > 0 && cat.questions.every(q => q.isAnswered));
 
   // Timer logic
   useEffect(() => {
     if (activeQuestion && displayStage === 'question' && gameState.settings?.timerEnabled && timerValue !== null && timerValue > 0) {
+      if (hostParams?.firstBuzz) return; // Freeze timer if someone buzzed
       const interval = setInterval(() => {
         setTimerValue((t) => (t !== null && t > 0 ? t - 1 : t));
       }, 1000);
@@ -56,7 +96,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     } else if (activeQuestion && displayStage === 'question' && gameState.settings?.timerEnabled && timerValue === 0) {
       playSound('penalize');
     }
-  }, [activeQuestion, displayStage, timerValue, gameState.settings?.timerEnabled, playSound]);
+  }, [activeQuestion, displayStage, timerValue, gameState.settings?.timerEnabled, playSound, hostParams?.firstBuzz]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -117,24 +157,41 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
 
-  const openQuestion = (catId: string, question: Question) => {
+  const openQuestion = async (catId: string, question: Question) => {
     if (question.isAnswered) return;
     playSound('select');
     setActiveQuestion({ catId, question });
     setDisplayStage(question.isBonus ? 'bonus_intro' : 'question');
+    
     if (gameState.settings?.timerEnabled) {
       setTimerValue(gameState.settings.timerDuration);
     } else {
       setTimerValue(null);
     }
+
+    if (gameId) {
+      const gRef = doc(db, 'games', gameId);
+      await updateDoc(gRef, {
+        activeQuestion: { 
+          id: question.id, 
+          endTime: gameState.settings?.timerEnabled ? Date.now() + gameState.settings.timerDuration * 1000 : null 
+        },
+        firstBuzz: null
+      });
+    }
   };
 
-  const closeQuestion = () => {
+  const closeQuestion = async () => {
     if (activeQuestion) {
       hooks.setQuestionAnswered(activeQuestion.catId, activeQuestion.question.id, true);
     }
     setActiveQuestion(null);
     setDisplayStage('question');
+
+    if (gameId) {
+      const gRef = doc(db, 'games', gameId);
+      await updateDoc(gRef, { activeQuestion: null, firstBuzz: null });
+    }
   };
 
   const handleAwardPoints = (playerId: string, points: number) => {
@@ -146,6 +203,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
   const handleDeductPoints = (playerId: string, points: number) => {
     playSound('penalize');
     hooks.updatePlayerScore(playerId, -points);
+    if (gameId) {
+       // Clear the buzz to let someone else try
+       const gRef = doc(db, 'games', gameId);
+       updateDoc(gRef, { firstBuzz: null });
+    }
   };
 
   const gridCategories = React.useMemo(() => {
@@ -248,6 +310,9 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     >
       {/* Top Bar Navigation */}
       <div className="absolute top-0 right-0 p-4 flex gap-2 z-50 opacity-20 hover:opacity-100 transition-opacity duration-300">
+        <button onClick={() => { playSound('click'); setShowQR(v => !v); }} className="bg-black/30 hover:bg-black/50 p-2.5 rounded-xl text-white transition-all border border-white/10 hover:border-white/30">
+          <QrCode className="w-5 h-5" />
+        </button>
         <button onClick={() => { playSound('click'); setIsMuted(m => !m); }} className="bg-black/30 hover:bg-black/50 p-2.5 rounded-xl text-white transition-all border border-white/10 hover:border-white/30">
           {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </button>
@@ -258,6 +323,90 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           <Settings className="w-5 h-5" />
         </button>
       </div>
+
+      <AnimatePresence>
+        {showQR && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          >
+            <div className="bg-white p-12 rounded-3xl flex flex-col items-center relative">
+              <button 
+                onClick={() => setShowQR(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-6 h-6 text-slate-800" />
+              </button>
+              <h2 className="text-3xl font-black text-slate-900 mb-8 uppercase tracking-widest">Join Lobby</h2>
+              <div className="p-4 bg-white border-4 border-slate-200 rounded-2xl shadow-xl">
+                <QRCodeSVG 
+                  value={`${window.location.origin}${window.location.pathname}#/buzzer/${gameId}`} 
+                  size={300} 
+                  level="H"
+                />
+              </div>
+              <p className="mt-8 text-slate-500 font-mono text-xl tracking-widest">{gameId}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {hostParams?.firstBuzz && activeQuestion && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[80] bg-emerald-500 rounded-3xl p-6 shadow-2xl flex items-center gap-6 border-4 border-white/20"
+          >
+            <div className="w-24 h-24 rounded-2xl overflow-hidden bg-emerald-900/20 border-2 border-white/30 shrink-0">
+              <img 
+                src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
+                alt="" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="flex flex-col text-white mr-4">
+              <span className="text-emerald-100 font-bold tracking-widest uppercase text-sm mb-1">First to Buzz</span>
+              <span className="text-4xl font-black tracking-tight">{hostParams.firstBuzz.name}</span>
+            </div>
+            
+            <div className="flex gap-2 border-l-2 border-emerald-400 pl-6 ml-2">
+               <button
+                 onClick={() => {
+                   // Ensure player exists in local state
+                   if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
+                     hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
+                   }
+                   setTimeout(() => {
+                     const pId = hostParams.firstBuzz.participantId;
+                     handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+                   }, 100);
+                 }}
+                 className="bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all"
+               >
+                 Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
+               </button>
+               <button
+                 onClick={() => {
+                   if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
+                     hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
+                   }
+                   setTimeout(() => {
+                     const pId = hostParams.firstBuzz.participantId;
+                     handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+                   }, 100);
+                 }}
+                 className="bg-black/30 hover:bg-black/50 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all"
+               >
+                 Incorrect
+               </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Game Title Display */}
       {gameState.title && (
