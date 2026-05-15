@@ -35,64 +35,20 @@ const TypewriterText = ({ text }: { text: string }) => {
   return <>{displayedText}</>;
 };
 
-const MarqueeHeader = ({ text }: { text: string }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLHeadingElement>(null);
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-  const [overflowAmount, setOverflowAmount] = useState(0);
-
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (containerRef.current && textRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const textWidth = textRef.current.scrollWidth;
-        if (textWidth > containerWidth) {
-          setShouldAnimate(true);
-          setOverflowAmount(textWidth - containerWidth + 40); // 40 for extra padding
-        } else {
-          setShouldAnimate(false);
-        }
-      }
-    };
-    checkOverflow();
-    // Use a small delay to ensure rendering is finished for accurate measurements
-    const timeout = setTimeout(checkOverflow, 100);
-    window.addEventListener('resize', checkOverflow);
-    return () => {
-      clearTimeout(timeout);
-      window.removeEventListener('resize', checkOverflow);
-    };
-  }, [text]);
+const AdaptiveHeader = ({ text }: { text: string }) => {
+  // Use length to determine a rough font size scale
+  const getFontSizeClass = (len: number) => {
+    if (len < 10) return 'text-xl sm:text-2xl lg:text-3xl xl:text-4xl';
+    if (len < 15) return 'text-lg sm:text-xl lg:text-2xl xl:text-3xl';
+    if (len < 20) return 'text-base sm:text-lg lg:text-xl xl:text-2xl';
+    return 'text-sm sm:text-base lg:text-lg xl:text-xl';
+  };
 
   return (
-    <div 
-      ref={containerRef} 
-      className="w-full flex items-center justify-center overflow-hidden h-full relative"
-    >
-      <motion.h2
-        ref={textRef}
-        className="text-center font-extrabold text-base sm:text-lg lg:text-xl xl:text-2xl uppercase tracking-widest leading-none whitespace-nowrap"
-        style={{ width: 'max-content' }}
-        animate={shouldAnimate ? {
-          x: [0, -overflowAmount, 0],
-        } : { x: 0 }}
-        transition={shouldAnimate ? {
-          duration: Math.max(6, text.length * 0.2),
-          repeat: Infinity,
-          ease: "linear",
-          repeatDelay: 1.5
-        } : {}}
-      >
+    <div className="w-full h-full flex items-center justify-center p-1">
+      <h2 className={`text-center font-black uppercase tracking-widest leading-tight line-clamp-3 ${getFontSizeClass(text.length)}`}>
         {text}
-      </motion.h2>
-      
-      {/* Edge Fades for better look when scrolling */}
-      {shouldAnimate && (
-        <>
-          <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[var(--color-header-bg)] to-transparent z-10 pointer-events-none" />
-          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--color-header-bg)] to-transparent z-10 pointer-events-none" />
-        </>
-      )}
+      </h2>
     </div>
   );
 };
@@ -531,13 +487,13 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
         >
           {/* Headers */}
           {gridCategories.map((cat) => (
-            <div 
-              key={cat.id} 
-              className="flex items-center justify-center p-2 sm:p-3 rounded-xl border border-white/10 backdrop-blur-sm overflow-hidden h-16 sm:h-20 lg:h-24"
-              style={{ background: 'var(--color-header-bg)', color: 'var(--color-header-text)' }}
-            >
-              <MarqueeHeader text={cat.name} />
-            </div>
+              <div 
+                key={cat.id} 
+                className="flex items-center justify-center rounded-xl border border-white/10 backdrop-blur-sm overflow-hidden h-16 sm:h-20 lg:h-24"
+                style={{ background: 'var(--color-header-bg)', color: 'var(--color-header-text)' }}
+              >
+                <AdaptiveHeader text={cat.name} />
+              </div>
           ))}
 
           {/* Grid Cells (Questions) */}
@@ -668,13 +624,19 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
               }}
             >
               <div className="text-center w-full max-w-7xl mx-auto px-4 cursor-pointer group flex flex-col items-center">
-                <motion.div 
-                  key={displayStage}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="text-4xl sm:text-5xl lg:text-7xl xl:text-[6.5rem] 2xl:text-[7.5rem] font-bold tracking-tight uppercase leading-tight"
-                >
+                  <motion.div 
+                    key={displayStage}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="font-bold tracking-tight uppercase leading-tight"
+                    style={{
+                      fontSize: displayStage === 'bonus_intro' ? '' : 
+                        activeQuestion.question[displayStage === 'answer' ? 'answerText' : 'questionText'].length > 100 ? 'clamp(1.5rem, 4vw, 3rem)' :
+                        activeQuestion.question[displayStage === 'answer' ? 'answerText' : 'questionText'].length > 60 ? 'clamp(2rem, 5vw, 4.5rem)' :
+                        'clamp(2.5rem, 6vw, 7.5rem)'
+                    }}
+                  >
                   {displayStage === 'bonus_intro' ? (
                     <div className="flex flex-col items-center justify-center space-y-8 bg-white text-black px-12 py-16 sm:px-24 sm:py-24 rounded-3xl" style={{ boxShadow: 'inset 0 0 0 8px currentColor' }}>
                       <span className="text-7xl sm:text-9xl lg:text-[11rem] font-sans font-black tracking-tighter leading-none text-black">

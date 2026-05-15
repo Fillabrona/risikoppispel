@@ -354,20 +354,33 @@ export default function BuzzerView() {
       <AnimatePresence mode="wait">
         {scoreNotification && (
           <motion.div
-            key={Date.now()} // Fresh animation for each change
-            initial={{ opacity: 0, y: 100, scale: 0.3, rotate: -15 }}
-            animate={{ opacity: 1, y: -20, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0, y: -150, scale: 1.5, rotate: 15 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none`}
+            key={Date.now()}
+            initial={{ opacity: 0, scale: 0.5, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 1.2, y: -50 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none p-6"
           >
-            <div className={`px-14 py-8 rounded-[3rem] font-black text-7xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'} border-[6px] border-white/30 uppercase flex flex-col items-center gap-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]`}>
-               <span className="text-2xl opacity-80">{scoreNotification.type === 'plus' ? 'AWESOME!' : 'OUCH!'}</span>
-               <div className="flex items-center gap-3">
-                 {scoreNotification.type === 'plus' ? <Plus className="w-12 h-12" /> : <Minus className="w-12 h-12" />}
-                 {scoreNotification.delta}
-               </div>
-            </div>
+            <motion.div 
+              initial={{ rotate: -5 }}
+              animate={{ rotate: 0 }}
+              className={`relative overflow-hidden rounded-[2.5rem] shadow-[0_30px_60px_rgba(0,0,0,0.5)] border-4 border-white/20 p-1 bg-slate-900`}
+            >
+              <div className={`px-10 py-12 rounded-[2.2rem] flex flex-col items-center gap-4 ${scoreNotification.type === 'plus' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-rose-400 to-rose-600'}`}>
+                <div className="bg-white/20 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white">
+                  {scoreNotification.type === 'plus' ? 'Point Scored' : 'Point Deducted'}
+                </div>
+                <div className="flex items-center gap-2 text-white text-7xl font-black tabular-nums">
+                  {scoreNotification.type === 'plus' ? <Plus className="w-12 h-12" /> : <Minus className="w-12 h-12" />}
+                  {scoreNotification.delta}
+                </div>
+                <div className="text-white/80 font-bold uppercase tracking-widest text-xs">
+                  {scoreNotification.type === 'plus' ? 'Keep it up!' : 'Nice try!'}
+                </div>
+              </div>
+              
+              {/* Glass reflection effect */}
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

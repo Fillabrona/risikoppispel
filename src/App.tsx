@@ -32,6 +32,11 @@ function HostView() {
     return () => unsubscribe();
   }, []);
 
+  const playersRef = useRef(gameState.players);
+  useEffect(() => {
+    playersRef.current = gameState.players;
+  }, [gameState.players]);
+
   // Sync Firestore Participants to GameState
   useEffect(() => {
     if (!gameId || !db) return;
@@ -52,12 +57,14 @@ function HostView() {
              hooks.updatePlayerScore(change.doc.id, data.score);
           }
         } else if (change.type === 'modified') {
-          const player = gameState.players.find(p => p.id === change.doc.id);
-          if (player) {
-            if (data.score !== undefined && data.score !== player.score) {
-              hooks.updatePlayerScore(change.doc.id, data.score - player.score);
+          // Use current state to avoid double updates
+          const currentPlayer = playersRef.current.find(p => p.id === change.doc.id);
+          if (currentPlayer) {
+            if (data.score !== undefined && data.score !== currentPlayer.score) {
+              const delta = data.score - currentPlayer.score;
+              if (delta !== 0) hooks.updatePlayerScore(change.doc.id, delta);
             }
-            if (data.name !== undefined && data.name !== player.name) {
+            if (data.name !== undefined && data.name !== currentPlayer.name) {
               hooks.updatePlayerName(change.doc.id, data.name);
             }
           }
@@ -75,7 +82,7 @@ function HostView() {
     });
 
     return () => unsubParticipants();
-  }, [gameId, mode, db]); // Included db for completeness
+  }, [gameId, mode, db]); // gameState removed from dependency array to prevent resubscribe on every score change
 
   useEffect(() => {
     localStorage.setItem('isMuted', String(isMuted));
