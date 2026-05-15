@@ -4,6 +4,8 @@ import React, { useState, useRef } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
+import { doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 interface EditorProps {
   gameState: GameState;
@@ -135,7 +137,14 @@ function CustomColorPicker({ value, onChange }: { value: string, onChange: (val:
 }
 
 export default function Editor({ gameState, hooks, onPlay, isMuted, setIsMuted, gameId }: EditorProps) {
-  const [activeTab, setActiveTab] = useState<'categories' | 'settings' | 'theme' | 'players'>('categories');
+  const [activeTab, setActiveTab] = useState<'categories' | 'settings' | 'theme' | 'players'>(() => {
+    const preferred = sessionStorage.getItem('preferred_editor_tab');
+    if (preferred === 'players' || preferred === 'categories' || preferred === 'settings' || preferred === 'theme') {
+      sessionStorage.removeItem('preferred_editor_tab');
+      return preferred as any;
+    }
+    return 'categories';
+  });
   const [modal, setModal] = useState<{ title: string; message: string } | null>(null);
   const [showQR, setShowQR] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -914,7 +923,13 @@ Output ONLY valid JSON, no markdown formatting.
                       <input
                         type="text"
                         value={player.name}
-                        onChange={(e) => hooks.updatePlayerName(player.id, e.target.value)}
+                        onChange={(e) => {
+                          hooks.updatePlayerName(player.id, e.target.value);
+                          if (gameId) {
+                             const pRef = doc(db, 'games', gameId, 'participants', player.id);
+                             setDoc(pRef, { name: e.target.value }, { merge: true });
+                          }
+                        }}
                         className="flex-1 px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 text-lg font-bold text-white placeholder-slate-600 outline-none transition-all"
                         placeholder="Player Name"
                       />
@@ -923,12 +938,26 @@ Output ONLY valid JSON, no markdown formatting.
                         <input
                           type="number"
                           value={player.score}
-                          onChange={(e) => hooks.updatePlayerScore(player.id, parseInt(e.target.value) - player.score || 0)}
+                          onChange={(e) => {
+                            const newScore = parseInt(e.target.value) || 0;
+                            const delta = newScore - player.score;
+                            hooks.updatePlayerScore(player.id, delta);
+                            if (gameId) {
+                               const pRef = doc(db, 'games', gameId, 'participants', player.id);
+                               setDoc(pRef, { score: newScore }, { merge: true });
+                            }
+                          }}
                           className="w-24 text-right font-mono font-bold text-xl text-amber-400 bg-transparent focus:outline-none focus:text-amber-300 transition-colors"
                         />
                       </div>
                       <button
-                        onClick={() => hooks.removePlayer(player.id)}
+                        onClick={() => {
+                          hooks.removePlayer(player.id);
+                          if (gameId) {
+                             const pRef = doc(db, 'games', gameId, 'participants', player.id);
+                             deleteDoc(pRef);
+                          }
+                        }}
                         className="text-slate-500 hover:text-red-400 p-3 hover:bg-red-500/10 rounded-xl transition-colors shrink-0"
                       >
                         <Trash2 className="w-5 h-5" />

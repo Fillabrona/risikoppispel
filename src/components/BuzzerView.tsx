@@ -45,8 +45,53 @@ export default function BuzzerView() {
     const pid = localStorage.getItem('participantId') || Math.random().toString(36).substring(2, 9);
     localStorage.setItem('participantId', pid);
     setParticipantId(pid);
+
+    const savedName = localStorage.getItem('participantName');
+    const savedVoice = localStorage.getItem('participantVoice');
+    if (savedName) setName(savedName);
+    if (savedVoice) setVoiceUri(savedVoice);
+
     return () => unsubAuth();
   }, []);
+
+  // Auto-join if session exists and is still valid in Firestore
+  useEffect(() => {
+    if (isAuth && gameId && participantId && !joined) {
+      const savedName = localStorage.getItem('participantName');
+      const savedVoice = localStorage.getItem('participantVoice');
+      
+      if (savedName) {
+        const pRef = doc(db, 'games', gameId, 'participants', participantId);
+        getDoc(pRef).then(snap => {
+          if (snap.exists()) {
+             setJoined(true);
+             setName(savedName);
+             if (savedVoice) setVoiceUri(savedVoice);
+          } else {
+             // Host might have reset participants, let's re-join automatically if it's the same game
+             // But we wait for user to click join unless they were ALREADY joined in this session
+          }
+        });
+      }
+    }
+  }, [isAuth, gameId, participantId, joined]);
+
+  // Remove player when they close the tab
+  useEffect(() => {
+    if (!gameId || !participantId || !joined) return;
+
+    const handleUnload = () => {
+      // We use navigator.sendBeacon or a synchronous delete if possible, 
+      // but Firestore deleteDoc is async. In modern browsers, we can try to fire and forget.
+      const pRef = doc(db, 'games', gameId, 'participants', participantId);
+      deleteDoc(pRef);
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, [gameId, participantId, joined]);
 
   // Sync Participant Data (Score, etc)
   useEffect(() => {
@@ -164,26 +209,38 @@ export default function BuzzerView() {
     }
   };
 
-  const handleJoin = async () => {
-    if (!name.trim() || !gameId) return;
+  const handleJoin = async (overrideName?: string, overrideVoice?: string) => {
+    const n = overrideName || name;
+    const v = overrideVoice || voiceUri;
+
+    if (!n.trim() || !gameId) return;
     
+    // Save to session
+    localStorage.setItem('participantName', n);
+    localStorage.setItem('participantVoice', v || '');
+
     // Generate avatar URL similar to existing app logic
-    const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(name)}&backgroundColor=transparent`;
+    const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(n)}&backgroundColor=transparent`;
     
     const pRef = doc(db, 'games', gameId, 'participants', participantId);
     await setDoc(pRef, {
-      name,
+      name: n,
       avatarUrl,
-      voiceUri,
+      voiceUri: v,
       joinedAt: new Date().toISOString(),
-      score: 0
-    });
+      score: myScore || 0
+    }, { merge: true });
     setJoined(true);
   };
 
   const buzzOut = async () => {
     if (!gameId || !gameStatus?.activeQuestion || gameStatus.firstBuzz || myBuzz) return;
     
+    // Check if I already buzzed wrong
+    if (gameStatus?.wrongBuzzes?.includes(participantId)) return;
+    // Check if answer is revealed
+    if (gameStatus?.showAnswer) return;
+
     // Check timer locally just in case
     const qDetails = gameStatus.activeQuestion;
     if (qDetails.endTime && Date.now() > qDetails.endTime) {
@@ -193,18 +250,19 @@ export default function BuzzerView() {
     setIsAnswering(true);
     setMyBuzz(true);
     
-    const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(name)}&backgroundColor=transparent`;
+    const avatarName = localStorage.getItem('participantName') || name;
+    const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(avatarName)}&backgroundColor=transparent`;
     
     const gameRef = doc(db, 'games', gameId);
-    await updateDoc(gameRef, {
+    await setDoc(gameRef, {
       firstBuzz: {
         participantId,
-        name,
+        name: avatarName,
         avatarUrl,
         voiceUri,
         time: new Date().toISOString(),
       }
-    });
+    }, { merge: true });
   };
 
   if (!joined) {
@@ -266,7 +324,10 @@ export default function BuzzerView() {
   if (isBuzzerActive && gameStatus.activeQuestion.endTime) {
     expired = Date.now() > gameStatus.activeQuestion.endTime;
   }
-  const canBuzz = isBuzzerActive && !expired;
+  
+  const wasWrong = gameStatus?.wrongBuzzes?.includes(participantId);
+  const isAnswerShown = gameStatus?.showAnswer;
+  const canBuzz = isBuzzerActive && !expired && !wasWrong && !isAnswerShown;
   
   const iWonBuzz = gameStatus?.firstBuzz?.participantId === participantId;
   const someoneElseWon = gameStatus?.firstBuzz && !iWonBuzz;
@@ -275,16 +336,22 @@ export default function BuzzerView() {
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 select-none overflow-hidden touch-manipulation relative">
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {scoreNotification && (
           <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.5 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.5 }}
+            key={Date.now()} // Fresh animation for each change
+            initial={{ opacity: 0, y: 100, scale: 0.3, rotate: -15 }}
+            animate={{ opacity: 1, y: -20, scale: 1, rotate: 0 }}
+            exit={{ opacity: 0, y: -150, scale: 1.5, rotate: 15 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
             className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none`}
           >
-            <div className={`px-12 py-6 rounded-full font-black text-6xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'} border-4 border-white/20 uppercase`}>
-              {scoreNotification.type === 'plus' ? '+' : '-'}{scoreNotification.delta}
+            <div className={`px-14 py-8 rounded-[3rem] font-black text-7xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'} border-[6px] border-white/30 uppercase flex flex-col items-center gap-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]`}>
+               <span className="text-2xl opacity-80">{scoreNotification.type === 'plus' ? 'AWESOME!' : 'OUCH!'}</span>
+               <div className="flex items-center gap-3">
+                 {scoreNotification.type === 'plus' ? <Plus className="w-12 h-12" /> : <Minus className="w-12 h-12" />}
+                 {scoreNotification.delta}
+               </div>
             </div>
           </motion.div>
         )}
@@ -318,12 +385,17 @@ export default function BuzzerView() {
             animate={{ opacity: 1, scale: 1 }}
             className="text-center space-y-6"
           >
-            <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto border border-white/10">
-              <Trophy className="w-8 h-8 text-amber-500/80" />
+            <div className="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mx-auto border border-white/10 shadow-inner">
+               <motion.div
+                 animate={{ rotate: [0, 10, -10, 0] }}
+                 transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+               >
+                 <Trophy className="w-10 h-10 text-amber-500/80" />
+               </motion.div>
             </div>
             <div className="space-y-2">
               <h2 className="text-2xl font-black text-white/90 tracking-[0.2em] uppercase">Ready</h2>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Waiting for next card...</p>
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Waiting for host to pick a card...</p>
             </div>
           </motion.div>
         ) : (
@@ -333,14 +405,14 @@ export default function BuzzerView() {
               onClick={buzzOut}
               disabled={!canBuzz}
               style={{ backgroundColor: canBuzz ? buzzerColor : undefined }}
-              className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
+              className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
                 ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
-                someoneElseWon ? 'bg-slate-800 opacity-40 border-transparent' : 
-                canBuzz ? 'brightness-100' : 
-                'bg-slate-800 opacity-40 border-transparent'}`}
+                someoneElseWon ? 'bg-slate-800 opacity-20 border-transparent saturate-0' : 
+                canBuzz ? 'brightness-100 scale-100' : 
+                'bg-slate-800 opacity-20 border-transparent saturate-0 scale-95'}`}
             >
               <div className="flex flex-col items-center justify-center">
-                <span className="text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight">
+                <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${!canBuzz ? 'opacity-40' : 'opacity-100'}`}>
                   {iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : canBuzz ? 'BUZZ' : 'WAIT'}
                 </span>
               </div>

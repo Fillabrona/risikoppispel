@@ -6,7 +6,7 @@ import React from 'react';
 import { useSound } from '../hooks/useSound';
 import Confetti from 'react-confetti';
 import { QRCodeSVG } from 'qrcode.react';
-import { doc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db, loginAnonymously } from '../lib/firebase';
 
 interface PlayBoardProps {
@@ -197,7 +197,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
     if (gameId) {
       const gRef = doc(db, 'games', gameId);
-      await updateDoc(gRef, { activeQuestion: null, firstBuzz: null });
+      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [] }, { merge: true });
     }
   };
 
@@ -208,7 +208,8 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     // Sync to Firestore for BuzzerView notification
     if (gameId) {
       const pRef = doc(db, 'games', gameId, 'participants', playerId);
-      updateDoc(pRef, { score: (gameState.players.find(p => p.id === playerId)?.score || 0) + points });
+      const newScore = (gameState.players.find(p => p.id === playerId)?.score || 0) + points;
+      setDoc(pRef, { score: newScore }, { merge: true });
     }
 
     closeQuestion();
@@ -221,11 +222,17 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     if (gameId) {
        // Sync to Firestore
        const pRef = doc(db, 'games', gameId, 'participants', playerId);
-       updateDoc(pRef, { score: Math.max(0, (gameState.players.find(p => p.id === playerId)?.score || 0) - points) });
+       const newScore = Math.max(0, (gameState.players.find(p => p.id === playerId)?.score || 0) - points);
+       setDoc(pRef, { score: newScore }, { merge: true });
 
-       // Clear the buzz to let someone else try
+       // Clear the buzz to let someone else try, but track who got it wrong
        const gRef = doc(db, 'games', gameId);
-       updateDoc(gRef, { firstBuzz: null });
+       getDoc(gRef).then(snap => {
+         const data = snap.data();
+         const wrong = data?.wrongBuzzes || [];
+         if (!wrong.includes(playerId)) wrong.push(playerId);
+         setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
+       });
     }
   };
 
@@ -535,8 +542,22 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
             
             {/* Quick adjusters overlay */}
             <div className="absolute inset-0 bg-slate-900/95 z-20 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-4 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto">
-               <button onClick={() => { playSound('award'); hooks.updatePlayerScore(player.id, 100); }} className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-lg hover:bg-emerald-400 active:scale-95 transition-all text-emerald-950">+100</button>
-               <button onClick={() => { playSound('penalize'); hooks.updatePlayerScore(player.id, -100); }} className="w-14 h-14 bg-rose-500 rounded-full flex items-center justify-center font-bold text-lg hover:bg-rose-400 active:scale-95 transition-all text-rose-950">-100</button>
+               <button onClick={() => { 
+                 playSound('award'); 
+                 hooks.updatePlayerScore(player.id, 100); 
+                 if (gameId) {
+                   const pRef = doc(db, 'games', gameId, 'participants', player.id);
+                   setDoc(pRef, { score: player.score + 100 }, { merge: true });
+                 }
+               }} className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-lg hover:bg-emerald-400 active:scale-95 transition-all text-emerald-950">+100</button>
+               <button onClick={() => { 
+                 playSound('penalize'); 
+                 hooks.updatePlayerScore(player.id, -100); 
+                 if (gameId) {
+                   const pRef = doc(db, 'games', gameId, 'participants', player.id);
+                   setDoc(pRef, { score: Math.max(0, player.score - 100) }, { merge: true });
+                 }
+               }} className="w-14 h-14 bg-rose-500 rounded-full flex items-center justify-center font-bold text-lg hover:bg-rose-400 active:scale-95 transition-all text-rose-950">-100</button>
             </div>
           </div>
         ))}
@@ -580,6 +601,9 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                 } else if (displayStage === 'question') {
                   playSound('reveal');
                   setDisplayStage('answer');
+                  if (gameId) {
+                    setDoc(doc(db, 'games', gameId), { showAnswer: true }, { merge: true });
+                  }
                 }
               }}
             >

@@ -43,14 +43,35 @@ function HostView() {
     // Listen for participants
     const participantsRef = collection(db, 'games', gameId, 'participants');
     const unsubParticipants = onSnapshot(participantsRef, (snapshot) => {
+      let playerWasRemoved = false;
       snapshot.docChanges().forEach((change) => {
+        const data = change.doc.data();
         if (change.type === 'added') {
-          const data = change.doc.data();
           hooks.addPlayer(data.name, change.doc.id);
+          if (data.score !== undefined) {
+             hooks.updatePlayerScore(change.doc.id, data.score);
+          }
+        } else if (change.type === 'modified') {
+          const player = gameState.players.find(p => p.id === change.doc.id);
+          if (player) {
+            if (data.score !== undefined && data.score !== player.score) {
+              hooks.updatePlayerScore(change.doc.id, data.score - player.score);
+            }
+            if (data.name !== undefined && data.name !== player.name) {
+              hooks.updatePlayerName(change.doc.id, data.name);
+            }
+          }
         } else if (change.type === 'removed') {
           hooks.removePlayer(change.doc.id);
+          playerWasRemoved = true;
         }
       });
+
+      // Only auto-exit if a player was actually removed and now the room is empty
+      if (mode === 'play' && playerWasRemoved && snapshot.docs.length === 0) {
+           setMode('editor');
+           sessionStorage.setItem('preferred_editor_tab', 'players');
+      }
     });
 
     return () => unsubParticipants();
