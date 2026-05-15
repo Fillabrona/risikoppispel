@@ -23,6 +23,7 @@ function HostView() {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         const storedGid = sessionStorage.getItem('ros_game_id');
+        // Generate a new 4-character code every time if one doesn't exist
         const gid = storedGid || Math.random().toString(36).substring(2, 6).toUpperCase();
         if (!storedGid) sessionStorage.setItem('ros_game_id', gid);
         setGameId(gid);
@@ -57,12 +58,13 @@ function HostView() {
              hooks.updatePlayerScore(change.doc.id, data.score);
           }
         } else if (change.type === 'modified') {
-          // Use current state to avoid double updates
+          // Sync score or name if they changed in Firestore (e.g. from Phone view)
           const currentPlayer = playersRef.current.find(p => p.id === change.doc.id);
           if (currentPlayer) {
             if (data.score !== undefined && data.score !== currentPlayer.score) {
               const delta = data.score - currentPlayer.score;
-              if (delta !== 0) hooks.updatePlayerScore(change.doc.id, delta);
+              // We perform local state delta update to match what happened in Firestore
+              hooks.updatePlayerScore(change.doc.id, delta);
             }
             if (data.name !== undefined && data.name !== currentPlayer.name) {
               hooks.updatePlayerName(change.doc.id, data.name);

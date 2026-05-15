@@ -35,52 +35,19 @@ const TypewriterText = ({ text }: { text: string }) => {
   return <>{displayedText}</>;
 };
 
-const MarqueeHeader = ({ text }: { text: string }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLHeadingElement>(null);
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-  const [xOffset, setXOffset] = useState(0);
-
-  useEffect(() => {
-    const check = () => {
-      if (containerRef.current && textRef.current) {
-        const cWidth = containerRef.current.offsetWidth;
-        const tWidth = textRef.current.scrollWidth;
-        if (tWidth > cWidth) {
-          setShouldAnimate(true);
-          setXOffset(tWidth - cWidth + 20); // 20px padding
-        } else {
-          setShouldAnimate(false);
-          setXOffset(0);
-        }
-      }
-    };
-    check();
-    window.addEventListener('resize', check);
-    const t = setTimeout(check, 200);
-    return () => {
-      window.removeEventListener('resize', check);
-      clearTimeout(t);
-    };
-  }, [text]);
+const SmartHeader = ({ text }: { text: string }) => {
+  const getFontSize = (str: string) => {
+    if (str.length < 12) return 'text-xl sm:text-2xl lg:text-3xl';
+    if (str.length < 18) return 'text-lg sm:text-xl lg:text-2xl';
+    if (str.length < 25) return 'text-base sm:text-lg lg:text-xl';
+    return 'text-sm sm:text-base lg:text-lg';
+  };
 
   return (
-    <div ref={containerRef} className="w-full h-full flex items-center justify-center p-2 overflow-hidden relative">
-      <motion.h2 
-        ref={textRef}
-        className="font-black uppercase tracking-widest leading-tight whitespace-nowrap text-lg sm:text-lg lg:text-xl xl:text-2xl"
-        animate={shouldAnimate ? {
-          x: [0, -xOffset, 0]
-        } : { x: 0 }}
-        transition={shouldAnimate ? {
-          duration: Math.max(4, text.length * 0.1),
-          repeat: Infinity,
-          ease: "linear",
-          repeatDelay: 2
-        } : {}}
-      >
+    <div className="w-full h-full flex items-center justify-center p-2 text-center overflow-hidden">
+      <h2 className={`font-black uppercase tracking-widest leading-[1.1] ${getFontSize(text)} break-words max-w-full drop-shadow-sm`}>
         {text}
-      </motion.h2>
+      </h2>
     </div>
   );
 };
@@ -525,7 +492,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                 className="flex items-center justify-center rounded-xl border border-white/10 backdrop-blur-sm overflow-hidden h-16 sm:h-20 lg:h-24"
                 style={{ background: 'var(--color-header-bg)', color: 'var(--color-header-text)' }}
               >
-                <MarqueeHeader text={cat.name} />
+                <SmartHeader text={cat.name} />
               </div>
           ))}
 
@@ -595,14 +562,14 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                  playSound('award'); 
                  if (gameId) {
                    const pRef = doc(db, 'games', gameId, 'participants', player.id);
-                   setDoc(pRef, { score: player.score + 100 }, { merge: true });
+                   setDoc(pRef, { score: (player.score || 0) + 100 }, { merge: true });
                  }
                }} className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-lg hover:bg-emerald-400 active:scale-95 transition-all text-emerald-950">+100</button>
                <button onClick={() => { 
                  playSound('penalize'); 
                  if (gameId) {
                    const pRef = doc(db, 'games', gameId, 'participants', player.id);
-                   setDoc(pRef, { score: player.score - 100 }, { merge: true });
+                   setDoc(pRef, { score: (player.score || 0) - 100 }, { merge: true });
                  }
                }} className="w-14 h-14 bg-rose-500 rounded-full flex items-center justify-center font-bold text-lg hover:bg-rose-400 active:scale-95 transition-all text-rose-950">-100</button>
             </div>

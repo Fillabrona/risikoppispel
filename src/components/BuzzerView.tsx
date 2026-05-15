@@ -86,17 +86,20 @@ export default function BuzzerView() {
         if (data.score !== undefined) {
           if (myScore !== null && data.score !== myScore && joined) {
             const diff = data.score - myScore;
-            setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus' });
-            if (diff > 0) {
-              playSound('award');
-              confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: [getBuzzerColor(participantId), '#ffffff']
-              });
-            } else {
-              playSound('penalize');
+            // Only trigger if difference is non-zero
+            if (diff !== 0) {
+              setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus' });
+              if (diff > 0) {
+                playSound('award');
+                confetti({
+                  particleCount: 100,
+                  spread: 70,
+                  origin: { y: 0.6 },
+                  colors: [getBuzzerColor(participantId), '#ffffff']
+                });
+              } else {
+                playSound('penalize');
+              }
             }
           }
           setMyScore(data.score);
@@ -407,7 +410,7 @@ export default function BuzzerView() {
         </div>
         <div className="flex flex-col items-end pl-4 border-l border-white/10">
           <span className="text-amber-500/50 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Score</span>
-          <span className="text-amber-400 text-2xl font-black tabular-nums leading-none">{myScore}</span>
+          <span className="text-amber-400 text-2xl font-black tabular-nums leading-none">{myScore ?? 0}</span>
         </div>
       </div>
 
