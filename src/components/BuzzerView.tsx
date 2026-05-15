@@ -36,6 +36,7 @@ export default function BuzzerView() {
   const audioChunks = useRef<Blob[]>([]);
 
   const [isAuth, setIsAuth] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
     const unsubAuth = auth.onAuthStateChanged(user => {
@@ -187,17 +188,46 @@ export default function BuzzerView() {
   };
 
   const handleJoin = async (overrideName?: string, overrideVoice?: string) => {
+    if (isJoining) return;
     const n = overrideName || name;
     const v = overrideVoice || voiceUri;
 
-    if (!n.trim() || !gameId || !participantId) return;
+    if (!n.trim()) {
+      alert("Please enter a name");
+      return;
+    }
+
+    if (!gameId) {
+      alert("Game ID missing from URL");
+      return;
+    }
+
+    setIsJoining(true);
+    
+    if (!participantId) {
+      // Regenerate if lost
+      const pid = 'p-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now();
+      localStorage.setItem('participantId', pid);
+      setParticipantId(pid);
+    }
+
+    // Ensure auth is ready
+    if (!isAuth) {
+      try {
+        await loginAnonymously();
+        setIsAuth(true);
+      } catch (e) {
+        alert("Authentication failed. Please check your internet connection.");
+        setIsJoining(false);
+        return;
+      }
+    }
     
     // Save to session
     localStorage.setItem('participantName', n);
     localStorage.setItem('participantVoice', v || '');
 
     try {
-      // Generate avatar URL
       const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(n)}&backgroundColor=transparent`;
       
       const pRef = doc(db, 'games', gameId, 'participants', participantId);
@@ -212,7 +242,9 @@ export default function BuzzerView() {
       setJoined(true);
     } catch (err) {
       console.error("Join failed:", err);
-      alert("Failed to join. Please try again.");
+      alert("Failed to join. Error: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -289,11 +321,11 @@ export default function BuzzerView() {
             
             <button 
               onClick={() => handleJoin()}
-              disabled={!name.trim() || !isAuth}
+              disabled={!name.trim() || isJoining}
               className="w-full bg-cyan-500 text-slate-900 font-bold py-4 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all mt-4 flex items-center justify-center gap-2"
             >
-              {!isAuth && <Loader2 className="w-5 h-5 animate-spin" />}
-              {isAuth ? (localStorage.getItem('participantName') ? `Enter Lobby as ${localStorage.getItem('participantName')}` : 'Enter Lobby') : 'Connecting...'}
+              {(isJoining || (!isAuth && name.trim())) && <Loader2 className="w-5 h-5 animate-spin" />}
+              {isJoining ? 'Joining...' : (isAuth ? (localStorage.getItem('participantName') ? `Enter Lobby as ${localStorage.getItem('participantName')}` : 'Enter Lobby') : (name.trim() ? 'Connecting...' : 'Enter Name to Start'))}
             </button>
           </div>
         </div>

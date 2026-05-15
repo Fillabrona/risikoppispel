@@ -35,6 +35,68 @@ const TypewriterText = ({ text }: { text: string }) => {
   return <>{displayedText}</>;
 };
 
+const MarqueeHeader = ({ text }: { text: string }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLHeadingElement>(null);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  const [overflowAmount, setOverflowAmount] = useState(0);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const textWidth = textRef.current.scrollWidth;
+        if (textWidth > containerWidth) {
+          setShouldAnimate(true);
+          setOverflowAmount(textWidth - containerWidth + 40); // 40 for extra padding
+        } else {
+          setShouldAnimate(false);
+        }
+      }
+    };
+    checkOverflow();
+    // Use a small delay to ensure rendering is finished for accurate measurements
+    const timeout = setTimeout(checkOverflow, 100);
+    window.addEventListener('resize', checkOverflow);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('resize', checkOverflow);
+    };
+  }, [text]);
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="w-full flex items-center justify-center overflow-hidden h-full relative"
+    >
+      <motion.h2
+        ref={textRef}
+        className="text-center font-extrabold text-base sm:text-lg lg:text-xl xl:text-2xl uppercase tracking-widest leading-none whitespace-nowrap"
+        style={{ width: 'max-content' }}
+        animate={shouldAnimate ? {
+          x: [0, -overflowAmount, 0],
+        } : { x: 0 }}
+        transition={shouldAnimate ? {
+          duration: Math.max(6, text.length * 0.2),
+          repeat: Infinity,
+          ease: "linear",
+          repeatDelay: 1.5
+        } : {}}
+      >
+        {text}
+      </motion.h2>
+      
+      {/* Edge Fades for better look when scrolling */}
+      {shouldAnimate && (
+        <>
+          <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[var(--color-header-bg)] to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--color-header-bg)] to-transparent z-10 pointer-events-none" />
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMuted, gameId }: PlayBoardProps) {
   const [activeQuestion, setActiveQuestion] = useState<{
     catId: string;
@@ -471,12 +533,10 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           {gridCategories.map((cat) => (
             <div 
               key={cat.id} 
-              className="flex items-center justify-center p-3 sm:p-4 rounded-xl border border-white/10 backdrop-blur-sm"
+              className="flex items-center justify-center p-2 sm:p-3 rounded-xl border border-white/10 backdrop-blur-sm overflow-hidden h-16 sm:h-20 lg:h-24"
               style={{ background: 'var(--color-header-bg)', color: 'var(--color-header-text)' }}
             >
-              <h2 className="text-center font-extrabold text-base sm:text-lg lg:text-2xl xl:text-3xl uppercase tracking-widest leading-tight line-clamp-3">
-                {cat.name}
-              </h2>
+              <MarqueeHeader text={cat.name} />
             </div>
           ))}
 
