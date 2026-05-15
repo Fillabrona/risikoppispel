@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, auth, loginAnonymously } from '../lib/firebase';
 import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
-import { Mic, Square, Loader2, Minus, Plus } from 'lucide-react';
+import { Mic, Square, Loader2, Trophy, Minus, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSound } from '../hooks/useSound';
@@ -339,7 +339,6 @@ export default function BuzzerView() {
     }
     
     setIsSendingBuzz(true);
-    playSound('click'); // Immediate local feedback
     
     const avatarName = localStorage.getItem('participantName') || name;
     const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(avatarName)}&backgroundColor=transparent`;
@@ -510,10 +509,10 @@ export default function BuzzerView() {
             <span className="text-white text-lg font-black tracking-tight line-clamp-1">{name}</span>
           </div>
         </div>
-        <div className="bg-slate-800 border border-white/10 p-1.5 rounded-2xl shadow-inner">
-          <div className="bg-slate-900/50 rounded-xl px-5 py-2 flex flex-col items-center border border-white/5">
-            <span className="text-amber-500/40 text-[9px] font-black uppercase tracking-[0.3em] leading-none mb-1.5">Score</span>
-            <span className="text-amber-400 text-3xl font-black tabular-nums leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">{myScore ?? 0}</span>
+        <div className="flex items-center bg-white/5 border border-white/10 p-2 rounded-xl">
+          <div className="flex flex-col items-center px-4 py-1">
+            <span className="text-amber-500/50 text-[10px] font-black uppercase tracking-[0.2em] leading-none mb-1">Score</span>
+            <span className="text-amber-400 text-3xl font-black tabular-nums leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">{myScore ?? 0}</span>
           </div>
         </div>
       </div>
@@ -525,9 +524,17 @@ export default function BuzzerView() {
             animate={{ opacity: 1, scale: 1 }}
             className="text-center space-y-6"
           >
-            <div className="space-y-4">
+            <div className="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mx-auto border border-white/10 shadow-inner">
+               <motion.div
+                 animate={{ rotate: [0, 10, -10, 0] }}
+                 transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+               >
+                 <Trophy className="w-10 h-10 text-amber-500/80" />
+               </motion.div>
+            </div>
+            <div className="space-y-2">
               <h2 className="text-2xl font-black text-white/90 tracking-[0.2em] uppercase">Ready</h2>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] animate-pulse">Waiting for host to pick a card...</p>
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Waiting for host to pick a card...</p>
             </div>
           </motion.div>
         ) : (
@@ -535,21 +542,17 @@ export default function BuzzerView() {
             {/* Visual indicator of "can buzz" state without outer glow */}
             <button
               onClick={buzzOut}
-              disabled={!canBuzz || isSendingBuzz}
-              style={{ backgroundColor: canBuzz && !isSendingBuzz ? buzzerColor : undefined }}
-              className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all duration-150 transform active:scale-90 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
+              disabled={!canBuzz}
+              style={{ backgroundColor: canBuzz ? buzzerColor : undefined }}
+              className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
                 ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
                 someoneElseWon ? 'bg-slate-800 opacity-20 border-transparent saturate-0' : 
-                isSendingBuzz ? 'bg-amber-500/50 scale-95 blur-[1px]' :
                 canBuzz ? 'brightness-100 scale-100' : 
                 'bg-slate-800 opacity-20 border-transparent saturate-0 scale-95'}`}
             >
               <div className="flex flex-col items-center justify-center">
-                <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${!canBuzz && !isSendingBuzz ? 'opacity-40' : 'opacity-100'}`}>
-                  {iWonBuzz ? 'YOUR TURN' : 
-                   someoneElseWon ? 'TOO SLOW' : 
-                   isSendingBuzz ? 'SENDING...' :
-                   canBuzz ? 'BUZZ' : 'WAIT'}
+                <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${!canBuzz ? 'opacity-40' : 'opacity-100'}`}>
+                  {iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : canBuzz ? 'BUZZ' : 'WAIT'}
                 </span>
               </div>
             </button>
