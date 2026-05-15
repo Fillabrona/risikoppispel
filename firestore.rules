@@ -19,30 +19,11 @@ service cloud.firestore {
 
     // Games collection
     match /games/{gameId} {
-      // Allow anybody to read the game state if they are signed in (required for buzzers)
-      allow read: if isSignedIn();
-      
-      // Allow host to create game (since they just create one randomly on client)
-      allow create: if isSignedIn();
-      
-      // Allow host to update state or players to buzz in
-      // Currently, since players buzz they need to update `firstBuzz`
-      allow update: if isSignedIn() && (
-        // Allow updating activeQuestion and firstBuzz
-        incoming().diff(resource.data).affectedKeys().hasAny(['activeQuestion', 'firstBuzz'])
-      );
+      allow read, write: if isSignedIn();
       
       // Participants subcollection
       match /participants/{participantId} {
-        // Anyone can read participants
-        allow read: if isSignedIn();
-        
-        // Anyone can join a game
-        allow create: if isSignedIn() &&
-          incoming().keys().hasAll(['name', 'joinedAt', 'score']) &&
-          incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 20;
-          
-        allow update: if isSignedIn();
+        allow read, write: if isSignedIn();
       }
     }
   }

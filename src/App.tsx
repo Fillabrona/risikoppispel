@@ -5,16 +5,31 @@ import PlayBoard from './components/PlayBoard';
 import BuzzerView from './components/BuzzerView';
 import { useGameState } from './hooks/useGameState';
 import { Volume2, VolumeX, Music } from 'lucide-react';
+import { auth, loginAnonymously } from './lib/firebase';
 
 function HostView() {
   const { gameState, ...hooks } = useGameState();
   const [mode, setMode] = useState<'editor' | 'play'>('editor');
+  const [gameId, setGameId] = useState('');
   const [isMuted, setIsMuted] = useState(() => {
     const saved = localStorage.getItem('isMuted');
     return saved === null ? false : saved === 'true';
   });
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        const storedGid = sessionStorage.getItem('ros_game_id');
+        const gid = storedGid || Math.random().toString(36).substring(2, 6).toUpperCase();
+        if (!storedGid) sessionStorage.setItem('ros_game_id', gid);
+        setGameId(gid);
+      }
+    });
+    loginAnonymously();
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('isMuted', String(isMuted));
@@ -102,6 +117,7 @@ function HostView() {
           onPlay={() => setMode('play')}
           isMuted={isMuted}
           setIsMuted={setIsMuted}
+          gameId={gameId}
         />
       ) : (
         <PlayBoard 
@@ -110,6 +126,7 @@ function HostView() {
           onEdit={() => setMode('editor')}
           isMuted={isMuted}
           setIsMuted={setIsMuted}
+          gameId={gameId}
         />
       )}
     </div>

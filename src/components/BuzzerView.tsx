@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { db, loginAnonymously } from '../lib/firebase';
+import { db, auth, loginAnonymously } from '../lib/firebase';
 import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
 import { Mic, Square } from 'lucide-react';
 
@@ -18,15 +18,21 @@ export default function BuzzerView() {
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
 
+  const [isAuth, setIsAuth] = useState(false);
+
   useEffect(() => {
+    const unsubAuth = auth.onAuthStateChanged(user => {
+      if (user) setIsAuth(true);
+    });
     loginAnonymously();
     const pid = localStorage.getItem('participantId') || Math.random().toString(36).substring(2, 9);
     localStorage.setItem('participantId', pid);
     setParticipantId(pid);
+    return () => unsubAuth();
   }, []);
 
   useEffect(() => {
-    if (!gameId) return;
+    if (!gameId || !isAuth) return;
     const unsub = onSnapshot(doc(db, 'games', gameId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();

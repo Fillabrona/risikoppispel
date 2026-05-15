@@ -1,8 +1,9 @@
 import { Category, GameState, presetThemes, Theme } from '../types';
-import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users, Palette, CheckCircle2, Copy, Download, Upload, Wand2, Loader2, ChevronDown, Volume2, VolumeX, AlertCircle } from 'lucide-react';
+import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users, Palette, CheckCircle2, Copy, Download, Upload, Wand2, Loader2, ChevronDown, Volume2, VolumeX, AlertCircle, X, QrCode } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { motion, AnimatePresence } from 'motion/react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface EditorProps {
   gameState: GameState;
@@ -10,6 +11,7 @@ interface EditorProps {
   onPlay: () => void;
   isMuted: boolean;
   setIsMuted: (val: boolean | ((p: boolean) => boolean)) => void;
+  gameId?: string;
 }
 
 function CustomSelect({ value, onChange, options, label }: { value: string, onChange: (val: string) => void, options: {value: string, label: string}[], label: string }) {
@@ -105,11 +107,12 @@ function CustomColorPicker({ value, onChange }: { value: string, onChange: (val:
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: openUpwards ? 10 : -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: openUpwards ? 10 : -10 }}
-            className={`absolute z-[60] p-3 bg-slate-900 border border-slate-700/50 rounded-3xl shadow-2xl origin-center backdrop-blur-xl ${
-              openUpwards ? 'bottom-full mb-3' : 'top-full mt-3'
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className={`absolute z-[100] p-3 bg-slate-900 border border-slate-700/50 rounded-3xl shadow-2xl backdrop-blur-xl ${
+              openUpwards ? 'bottom-full mb-3 left-0' : 'top-full mt-3 left-0'
             }`}
           >
             <HexColorPicker color={value} onChange={onChange} />
@@ -131,9 +134,10 @@ function CustomColorPicker({ value, onChange }: { value: string, onChange: (val:
   );
 }
 
-export default function Editor({ gameState, hooks, onPlay, isMuted, setIsMuted }: EditorProps) {
+export default function Editor({ gameState, hooks, onPlay, isMuted, setIsMuted, gameId }: EditorProps) {
   const [activeTab, setActiveTab] = useState<'categories' | 'settings' | 'theme' | 'players'>('categories');
   const [modal, setModal] = useState<{ title: string; message: string } | null>(null);
+  const [showQR, setShowQR] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [aiPrompt, setAiPrompt] = useState('');
@@ -154,7 +158,7 @@ export default function Editor({ gameState, hooks, onPlay, isMuted, setIsMuted }
 
   const handleGenerateAI = async () => {
     if (!aiPrompt && !aiBonusEnabled) {
-      setModal({ title: "Beskrywing Benodig", message: "Voer asseblief 'n beskrywing in vir die speletjie-inhoud." });
+      setModal({ title: "Description Required", message: "Please enter a description for the game content." });
       return;
     }
     setIsGenerating(true);
@@ -204,7 +208,7 @@ Make it engaging and accurate!`;
       if (!response.ok) {
         const errText = await response.text();
         console.error("Groq API Error:", errText);
-        throw new Error('API Fout');
+        throw new Error('API Error');
       }
       const data = await response.json();
       let content = data.choices[0].message.content;
@@ -217,7 +221,7 @@ Make it engaging and accurate!`;
         parsed = JSON.parse(content);
       } catch (e) {
         console.error("AI response:", content);
-        throw new Error("Die AI het nie die antwoord korrek geformateer nie.");
+        throw new Error("The AI did not format the response properly.");
       }
       
       if (!parsed.categories || !Array.isArray(parsed.categories)) {
@@ -244,7 +248,7 @@ Make it engaging and accurate!`;
       setActiveTab('categories');
       setAiPrompt('');
     } catch(e: any) {
-      setModal({ title: "Gegenereer Fout", message: e.message });
+      setModal({ title: "Generation Error", message: e.message });
     } finally {
       setIsGenerating(false);
     }
@@ -341,7 +345,7 @@ Output ONLY valid JSON, no markdown formatting.
         categories: newCategories
       });
     } catch(e: any) {
-      setModal({ title: "Bonus Fout", message: "Kon nie bonusvraagnote genereer nie: " + e.message });
+      setModal({ title: "Bonus Error", message: "Could not generate bonus question notes: " + e.message });
     } finally {
       setIsGenerating(false);
     }
@@ -367,7 +371,7 @@ Output ONLY valid JSON, no markdown formatting.
         hooks.setGameState(json);
       } catch (err) {
         console.error("Error parsing JSON:", err);
-        setModal({ title: "Invoer Fout", message: "Kon nie die speletjie invoer nie. Maak seker dit is 'n geldige JSON-lêer." });
+        setModal({ title: "Import Error", message: "Could not import the game. Ensure it is a valid JSON file." });
       }
     };
     reader.readAsText(file);
@@ -392,9 +396,9 @@ Output ONLY valid JSON, no markdown formatting.
               className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="relative w-full max-w-sm bg-slate-900 border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl text-center"
             >
               <div className="w-16 h-16 bg-amber-500/10 rounded-3xl flex items-center justify-center mb-8 mx-auto ring-1 ring-amber-500/20">
@@ -406,7 +410,7 @@ Output ONLY valid JSON, no markdown formatting.
                 onClick={() => setModal(null)}
                 className="w-full py-4 bg-white text-slate-900 font-black text-sm uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-xl hover:bg-slate-100"
               >
-                Verstaan
+                Got it
               </button>
             </motion.div>
           </div>
@@ -484,9 +488,9 @@ Output ONLY valid JSON, no markdown formatting.
             onClick={() => {
               if (!canPlay) {
                 if (gameState.players.length === 0) {
-                  setModal({ title: "Speler Benodig", message: "Voeg asseblief ten minste een speler by voordat jy begin." });
+                  setModal({ title: "Player Required", message: "Please add at least one player before starting." });
                 } else {
-                  setModal({ title: "Geen Vrae", message: "Die speletjie moet ten minste een kategorie met 'n vraag hê." });
+                  setModal({ title: "No Questions", message: "The game must have at least one category with a question." });
                 }
                 return;
               }
@@ -883,13 +887,22 @@ Output ONLY valid JSON, no markdown formatting.
                     <Users className="w-6 h-6 text-purple-400" /> 
                     Contestants
                   </h2>
-                  <button
-                    onClick={hooks.addPlayer}
-                    className="flex items-center space-x-2 text-sm font-bold text-white bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 px-4 py-2 rounded-xl transition-all"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Player</span>
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setShowQR(true)}
+                      className="flex items-center space-x-2 text-sm font-bold text-slate-300 bg-slate-700/40 hover:bg-slate-700/80 border border-slate-600/50 px-4 py-2 rounded-xl transition-all"
+                    >
+                      <QrCode className="w-4 h-4" />
+                      <span>Host Lobby (QR)</span>
+                    </button>
+                    <button
+                      onClick={hooks.addPlayer}
+                      className="flex items-center space-x-2 text-sm font-bold text-white bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 px-4 py-2 rounded-xl transition-all"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Player</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid gap-4">
@@ -1010,6 +1023,43 @@ Output ONLY valid JSON, no markdown formatting.
         </AnimatePresence>
       </div>
     </main>
+    
+    <AnimatePresence>
+      {showQR && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md"
+        >
+          <div className="bg-slate-900 p-12 rounded-[2.5rem] border border-slate-700/50 flex flex-col items-center relative shadow-2xl">
+            <button 
+              onClick={() => setShowQR(false)}
+              className="absolute top-6 right-6 p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-2xl font-black text-white mb-8 uppercase tracking-widest text-center">Join Lobby</h2>
+            <div className="p-4 bg-white rounded-2xl shadow-xl">
+              {gameId ? (
+                <QRCodeSVG 
+                  value={`${window.location.origin}${window.location.pathname}#/buzzer/${gameId}`} 
+                  size={260} 
+                  level="H"
+                />
+              ) : (
+                <div className="w-[260px] h-[260px] flex items-center justify-center bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl">
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-center px-4">Start Game First</p>
+                </div>
+              )}
+            </div>
+            {gameId && <p className="mt-8 text-cyan-400 font-mono text-xl font-bold tracking-[0.3em]">{gameId}</p>}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
     </div>
   );
 }
