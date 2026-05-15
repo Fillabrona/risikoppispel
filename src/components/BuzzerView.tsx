@@ -283,7 +283,7 @@ export default function BuzzerView() {
             exit={{ opacity: 0, scale: 1.5 }}
             className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none`}
           >
-            <div className={`px-12 py-6 rounded-full font-black text-6xl shadow-2xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'} border-4 border-white/20`}>
+            <div className={`px-12 py-6 rounded-full font-black text-6xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'} border-4 border-white/20 uppercase`}>
               {scoreNotification.type === 'plus' ? '+' : '-'}{scoreNotification.delta}
             </div>
           </motion.div>
@@ -347,11 +347,7 @@ export default function BuzzerView() {
       </div>
 
       {/* Footer Info */}
-      <div className="w-full flex justify-center py-4">
-        <div className="px-4 py-2 bg-white/5 rounded-full border border-white/10 text-[10px] font-bold text-white/30 uppercase tracking-[0.3em]">
-          Game: {gameId}
-        </div>
-      </div>
+      <div className="w-full flex justify-center py-4" />
     </div>
   );
 }
