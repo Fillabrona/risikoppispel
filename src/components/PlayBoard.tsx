@@ -58,6 +58,8 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
   useEffect(() => {
     if (!gameId) return;
     const gRef = doc(db, 'games', gameId);
+    
+    // Ensure game status is playing when board is mounted
     setDoc(gRef, { status: 'playing', activeQuestion: null, firstBuzz: null }, { merge: true });
 
     const unsub = onSnapshot(gRef, (docSnap) => {
@@ -70,7 +72,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           firstBuzzRef.current = data.firstBuzz;
           if (data.firstBuzz.voiceUri) {
             const audio = new Audio(data.firstBuzz.voiceUri);
-            audio.play().catch(e => console.error(e));
+            audio.play().catch(e => console.error("Voice playback failed:", e));
           } else {
             playSound('award'); // fallback if no voice
           }
@@ -80,7 +82,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       }
     });
     return () => unsub();
-  }, [playSound]);
+  }, [gameId, playSound]);
 
   const allAnswered = gameState.categories.length > 0 && gameState.categories.every(cat => cat.questions.length > 0 && cat.questions.every(q => q.isAnswered));
 

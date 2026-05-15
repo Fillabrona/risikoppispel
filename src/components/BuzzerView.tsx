@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, auth, loginAnonymously } from '../lib/firebase';
 import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc } from 'firebase/firestore';
-import { Mic, Square } from 'lucide-react';
+import { Mic, Square, Loader2 } from 'lucide-react';
 
 export default function BuzzerView() {
   const { gameId } = useParams();
@@ -48,7 +48,7 @@ export default function BuzzerView() {
       }
     });
     return () => unsub();
-  }, [gameId, participantId]);
+  }, [gameId, participantId, isAuth]);
 
   const startRecording = async () => {
     try {
@@ -179,10 +179,11 @@ export default function BuzzerView() {
             
             <button 
               onClick={handleJoin}
-              disabled={!name.trim() || !voiceUri}
-              className="w-full bg-cyan-500 text-slate-900 font-bold py-4 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all mt-4"
+              disabled={!name.trim() || !voiceUri || !isAuth}
+              className="w-full bg-cyan-500 text-slate-900 font-bold py-4 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all mt-4 flex items-center justify-center gap-2"
             >
-              Enter Lobby
+              {!isAuth && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isAuth ? 'Enter Lobby' : 'Connecting...'}
             </button>
           </div>
         </div>

@@ -191,10 +191,12 @@ export function useGameState() {
 
   const addPlayer = (name?: any, id?: any) => {
     setGameState((s) => {
+      const pId = typeof id === 'string' ? id : `p-${Date.now()}`;
+      if (s.players.find(p => p.id === pId)) return s; // Duplicate guard
+
       const playerName = typeof name === 'string' ? name : `Player ${s.players.length + 1}`;
-      const playerId = typeof id === 'string' ? id : `p-${Date.now()}`;
       const newPlayer = {
-        id: playerId,
+        id: pId,
         name: playerName,
         score: 0
       };

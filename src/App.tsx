@@ -5,7 +5,8 @@ import PlayBoard from './components/PlayBoard';
 import BuzzerView from './components/BuzzerView';
 import { useGameState } from './hooks/useGameState';
 import { Volume2, VolumeX, Music } from 'lucide-react';
-import { auth, loginAnonymously } from './lib/firebase';
+import { auth, loginAnonymously, db } from './lib/firebase';
+import { collection, doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 function HostView() {
   const { gameState, ...hooks } = useGameState();
@@ -30,6 +31,28 @@ function HostView() {
     loginAnonymously();
     return () => unsubscribe();
   }, []);
+
+  // Sync Firestore Participants to GameState
+  useEffect(() => {
+    if (!gameId) return;
+    
+    // Initialize game doc
+    const gRef = doc(db, 'games', gameId);
+    setDoc(gRef, { status: mode === 'play' ? 'playing' : 'editor' }, { merge: true });
+
+    // Listen for participants
+    const participantsRef = collection(db, 'games', gameId, 'participants');
+    const unsub = onSnapshot(participantsRef, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          hooks.addPlayer(data.name, change.doc.id);
+        }
+      });
+    });
+
+    return () => unsub();
+  }, [gameId, mode]); // Re-init on gameId or mode change
 
   useEffect(() => {
     localStorage.setItem('isMuted', String(isMuted));
