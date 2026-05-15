@@ -46,8 +46,9 @@ function HostView() {
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
           const data = change.doc.data();
-          // useGameState handles duplicate IDs internally now
           hooks.addPlayer(data.name, change.doc.id);
+        } else if (change.type === 'removed') {
+          hooks.removePlayer(change.doc.id);
         }
       });
     });

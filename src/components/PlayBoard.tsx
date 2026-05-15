@@ -368,7 +368,6 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                   level="H"
                 />
               </div>
-              <p className="mt-8 text-cyan-400 font-mono text-xl font-bold tracking-[0.3em]">{gameId}</p>
             </motion.div>
           </motion.div>
         )}

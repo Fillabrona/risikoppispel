@@ -1055,7 +1055,6 @@ Output ONLY valid JSON, no markdown formatting.
                 </div>
               )}
             </div>
-            {gameId && <p className="mt-8 text-cyan-400 font-mono text-xl font-bold tracking-[0.3em]">{gameId}</p>}
           </div>
         </motion.div>
       )}
