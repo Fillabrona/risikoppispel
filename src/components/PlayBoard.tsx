@@ -35,20 +35,52 @@ const TypewriterText = ({ text }: { text: string }) => {
   return <>{displayedText}</>;
 };
 
-const AdaptiveHeader = ({ text }: { text: string }) => {
-  // Use length to determine a rough font size scale
-  const getFontSizeClass = (len: number) => {
-    if (len < 10) return 'text-xl sm:text-2xl lg:text-3xl xl:text-4xl';
-    if (len < 15) return 'text-lg sm:text-xl lg:text-2xl xl:text-3xl';
-    if (len < 20) return 'text-base sm:text-lg lg:text-xl xl:text-2xl';
-    return 'text-sm sm:text-base lg:text-lg xl:text-xl';
-  };
+const MarqueeHeader = ({ text }: { text: string }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLHeadingElement>(null);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  const [xOffset, setXOffset] = useState(0);
+
+  useEffect(() => {
+    const check = () => {
+      if (containerRef.current && textRef.current) {
+        const cWidth = containerRef.current.offsetWidth;
+        const tWidth = textRef.current.scrollWidth;
+        if (tWidth > cWidth) {
+          setShouldAnimate(true);
+          setXOffset(tWidth - cWidth + 20); // 20px padding
+        } else {
+          setShouldAnimate(false);
+          setXOffset(0);
+        }
+      }
+    };
+    check();
+    window.addEventListener('resize', check);
+    const t = setTimeout(check, 200);
+    return () => {
+      window.removeEventListener('resize', check);
+      clearTimeout(t);
+    };
+  }, [text]);
 
   return (
-    <div className="w-full h-full flex items-center justify-center p-1">
-      <h2 className={`text-center font-black uppercase tracking-widest leading-tight line-clamp-3 ${getFontSizeClass(text.length)}`}>
+    <div ref={containerRef} className="w-full h-full flex items-center justify-center p-2 overflow-hidden relative">
+      <motion.h2 
+        ref={textRef}
+        className="font-black uppercase tracking-widest leading-tight whitespace-nowrap text-lg sm:text-lg lg:text-xl xl:text-2xl"
+        animate={shouldAnimate ? {
+          x: [0, -xOffset, 0]
+        } : { x: 0 }}
+        transition={shouldAnimate ? {
+          duration: Math.max(4, text.length * 0.1),
+          repeat: Infinity,
+          ease: "linear",
+          repeatDelay: 2
+        } : {}}
+      >
         {text}
-      </h2>
+      </motion.h2>
     </div>
   );
 };
@@ -221,12 +253,13 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
   const handleAwardPoints = (playerId: string, points: number) => {
     playSound('award');
-    hooks.updatePlayerScore(playerId, points);
     
-    // Sync to Firestore for BuzzerView notification
+    // Sync to Firestore for BuzzerView notification. 
+    // The host's local state will be updated by the listener in App.tsx to avoid doubling.
     if (gameId) {
       const pRef = doc(db, 'games', gameId, 'participants', playerId);
-      const newScore = (gameState.players.find(p => p.id === playerId)?.score || 0) + points;
+      const currentPlayer = gameState.players.find(p => p.id === playerId);
+      const newScore = (currentPlayer?.score || 0) + points;
       setDoc(pRef, { score: newScore }, { merge: true });
     }
 
@@ -235,12 +268,12 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
   const handleDeductPoints = (playerId: string, points: number) => {
     playSound('penalize');
-    hooks.updatePlayerScore(playerId, -points);
     
     if (gameId) {
        // Sync to Firestore
        const pRef = doc(db, 'games', gameId, 'participants', playerId);
-       const newScore = Math.max(0, (gameState.players.find(p => p.id === playerId)?.score || 0) - points);
+       const currentPlayer = gameState.players.find(p => p.id === playerId);
+       const newScore = (currentPlayer?.score || 0) - points;
        setDoc(pRef, { score: newScore }, { merge: true });
 
        // Clear the buzz to let someone else try, but track who got it wrong
@@ -492,7 +525,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                 className="flex items-center justify-center rounded-xl border border-white/10 backdrop-blur-sm overflow-hidden h-16 sm:h-20 lg:h-24"
                 style={{ background: 'var(--color-header-bg)', color: 'var(--color-header-text)' }}
               >
-                <AdaptiveHeader text={cat.name} />
+                <MarqueeHeader text={cat.name} />
               </div>
           ))}
 
@@ -560,7 +593,6 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
             <div className="absolute inset-0 bg-slate-900/95 z-20 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-4 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto">
                <button onClick={() => { 
                  playSound('award'); 
-                 hooks.updatePlayerScore(player.id, 100); 
                  if (gameId) {
                    const pRef = doc(db, 'games', gameId, 'participants', player.id);
                    setDoc(pRef, { score: player.score + 100 }, { merge: true });
@@ -568,10 +600,9 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                }} className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center font-bold text-lg hover:bg-emerald-400 active:scale-95 transition-all text-emerald-950">+100</button>
                <button onClick={() => { 
                  playSound('penalize'); 
-                 hooks.updatePlayerScore(player.id, -100); 
                  if (gameId) {
                    const pRef = doc(db, 'games', gameId, 'participants', player.id);
-                   setDoc(pRef, { score: Math.max(0, player.score - 100) }, { merge: true });
+                   setDoc(pRef, { score: player.score - 100 }, { merge: true });
                  }
                }} className="w-14 h-14 bg-rose-500 rounded-full flex items-center justify-center font-bold text-lg hover:bg-rose-400 active:scale-95 transition-all text-rose-950">-100</button>
             </div>
@@ -629,12 +660,13 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="font-bold tracking-tight uppercase leading-tight"
+                    className="font-bold tracking-tight uppercase leading-tight text-center"
                     style={{
                       fontSize: displayStage === 'bonus_intro' ? '' : 
-                        activeQuestion.question[displayStage === 'answer' ? 'answerText' : 'questionText'].length > 100 ? 'clamp(1.5rem, 4vw, 3rem)' :
-                        activeQuestion.question[displayStage === 'answer' ? 'answerText' : 'questionText'].length > 60 ? 'clamp(2rem, 5vw, 4.5rem)' :
-                        'clamp(2.5rem, 6vw, 7.5rem)'
+                        activeQuestion.question[displayStage === 'answer' ? 'answerText' : 'questionText'].length > 150 ? 'clamp(1rem, 3vw, 2.2rem)' :
+                        activeQuestion.question[displayStage === 'answer' ? 'answerText' : 'questionText'].length > 100 ? 'clamp(1.5rem, 4vw, 3.2rem)' :
+                        activeQuestion.question[displayStage === 'answer' ? 'answerText' : 'questionText'].length > 60 ? 'clamp(2rem, 5vw, 4.8rem)' :
+                        'clamp(2.5rem, 7vw, 8rem)'
                     }}
                   >
                   {displayStage === 'bonus_intro' ? (

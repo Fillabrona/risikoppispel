@@ -84,16 +84,20 @@ export default function BuzzerView() {
       if (snap.exists()) {
         const data = snap.data();
         if (data.score !== undefined) {
-          if (data.score > myScore && joined) {
-            confetti({
-              particleCount: 100,
-              spread: 70,
-              origin: { y: 0.6 },
-              colors: [getBuzzerColor(participantId), '#ffffff']
-            });
-            setScoreNotification({ delta: data.score - myScore, type: 'plus' });
-          } else if (data.score < myScore && joined) {
-            setScoreNotification({ delta: myScore - data.score, type: 'minus' });
+          if (myScore !== null && data.score !== myScore && joined) {
+            const diff = data.score - myScore;
+            setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus' });
+            if (diff > 0) {
+              playSound('award');
+              confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: [getBuzzerColor(participantId), '#ffffff']
+              });
+            } else {
+              playSound('penalize');
+            }
           }
           setMyScore(data.score);
         }
@@ -357,7 +361,8 @@ export default function BuzzerView() {
             key={Date.now()}
             initial={{ opacity: 0, scale: 0.5, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 1.2, y: -50 }}
+            exit={{ opacity: 0 }}
+            transition={{ exit: { duration: 0.2 } }}
             className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none p-6"
           >
             <motion.div 

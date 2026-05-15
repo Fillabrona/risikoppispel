@@ -940,8 +940,6 @@ Output ONLY valid JSON, no markdown formatting.
                           value={player.score}
                           onChange={(e) => {
                             const newScore = parseInt(e.target.value) || 0;
-                            const delta = newScore - player.score;
-                            hooks.updatePlayerScore(player.id, delta);
                             if (gameId) {
                                const pRef = doc(db, 'games', gameId, 'participants', player.id);
                                setDoc(pRef, { score: newScore }, { merge: true });
