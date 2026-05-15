@@ -5,6 +5,7 @@ import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc } fro
 import { Mic, Square, Loader2, Trophy, Minus, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSound } from '../hooks/useSound';
 
 const getBuzzerColor = (id: string | undefined) => {
   if (!id) return '#ef4444'; // Default red
@@ -25,9 +26,7 @@ export default function BuzzerView() {
   const [name, setName] = useState('');
   const [participantId, setParticipantId] = useState('');
   const [gameStatus, setGameStatus] = useState<any>(null);
-  const [isAnswering, setIsAnswering] = useState(false);
-  const [myBuzz, setMyBuzz] = useState(false);
-  const [myScore, setMyScore] = useState(0);
+  const [myScore, setMyScore] = useState<number | null>(null);
   const [scoreNotification, setScoreNotification] = useState<{ delta: number, type: 'plus' | 'minus' } | null>(null);
   
   const [recording, setRecording] = useState(false);
@@ -37,6 +36,32 @@ export default function BuzzerView() {
 
   const [isAuth, setIsAuth] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const { playSound } = useSound(false);
+  const wakeLockRef = useRef<any>(null);
+
+  // Wake Lock Implementation
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        } catch (err) {
+          console.error(`${err.name}, ${err.message}`);
+        }
+      }
+    };
+
+    if (joined) {
+      requestWakeLock();
+    }
+
+    return () => {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    };
+  }, [joined]);
 
   useEffect(() => {
     const unsubAuth = auth.onAuthStateChanged(user => {
@@ -119,7 +144,7 @@ export default function BuzzerView() {
       unsub();
       window.removeEventListener('beforeunload', cleanup);
     };
-  }, [gameId, participantId, joined, myScore]);
+  }, [gameId, participantId, joined, myScore, playSound]);
 
   // Game rules & buzzer sync
   useEffect(() => {
@@ -127,19 +152,22 @@ export default function BuzzerView() {
     const unsub = onSnapshot(doc(db, 'games', gameId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setGameStatus(data);
-        if (!data.activeQuestion) {
-          setIsAnswering(false);
-          setMyBuzz(false);
-        } else if (data.firstBuzz?.participantId === participantId) {
-          setMyBuzz(true);
-        } else if (data.firstBuzz) {
-          setIsAnswering(false); 
+        
+        // Sound logic: play sound if we JUST successfully buzzed
+        if (data.firstBuzz?.participantId === participantId && gameStatus?.firstBuzz?.participantId !== participantId) {
+          if (data.firstBuzz.voiceUri) {
+            const audio = new Audio(data.firstBuzz.voiceUri);
+            audio.play().catch(() => playSound('reveal'));
+          } else {
+            playSound('reveal');
+          }
         }
+
+        setGameStatus(data);
       }
     });
     return () => unsub();
-  }, [gameId, participantId, isAuth]);
+  }, [gameId, participantId, isAuth, gameStatus?.firstBuzz?.participantId, playSound]);
 
   // Clear score notification
   useEffect(() => {
@@ -256,8 +284,11 @@ export default function BuzzerView() {
   };
 
   const buzzOut = async () => {
-    if (!gameId || !gameStatus?.activeQuestion || gameStatus.firstBuzz || myBuzz) return;
+    if (!gameId || !gameStatus?.activeQuestion || gameStatus.firstBuzz) return;
     
+    // Safety check: only buzz if typing is finished
+    if (!gameStatus.typingFinished) return;
+
     // Check if I already buzzed wrong
     if (gameStatus?.wrongBuzzes?.includes(participantId)) return;
     // Check if answer is revealed
@@ -268,9 +299,6 @@ export default function BuzzerView() {
     if (qDetails.endTime && Date.now() > qDetails.endTime) {
       return; // Too late
     }
-
-    setIsAnswering(true);
-    setMyBuzz(true);
     
     const avatarName = localStorage.getItem('participantName') || name;
     const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(avatarName)}&backgroundColor=transparent`;
@@ -340,7 +368,7 @@ export default function BuzzerView() {
     );
   }
 
-  const isBuzzerActive = gameStatus?.activeQuestion && !gameStatus?.firstBuzz;
+  const isBuzzerActive = gameStatus?.activeQuestion && !gameStatus?.firstBuzz && gameStatus?.typingFinished;
   // If timer exceeded, they shouldn't be able to buzz
   let expired = false;
   if (isBuzzerActive && gameStatus.activeQuestion.endTime) {

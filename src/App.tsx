@@ -22,11 +22,9 @@ function HostView() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
-        const storedGid = sessionStorage.getItem('ros_game_id');
         // Generate a new 4-character code every time if one doesn't exist
-        const gid = storedGid || Math.random().toString(36).substring(2, 6).toUpperCase();
-        if (!storedGid) sessionStorage.setItem('ros_game_id', gid);
-        setGameId(gid);
+        // Use a ref to ensure we only generate ONCE per mount
+        setGameId(prev => prev || Math.random().toString(36).substring(2, 6).toUpperCase());
       }
     });
     loginAnonymously();
@@ -62,9 +60,11 @@ function HostView() {
           const currentPlayer = playersRef.current.find(p => p.id === change.doc.id);
           if (currentPlayer) {
             if (data.score !== undefined && data.score !== currentPlayer.score) {
-              const delta = data.score - currentPlayer.score;
-              // We perform local state delta update to match what happened in Firestore
-              hooks.updatePlayerScore(change.doc.id, delta);
+              // Direct absolute update to prevent desync
+              hooks.setGameState((s: any) => ({
+                ...s,
+                players: s.players.map((p: any) => p.id === change.doc.id ? { ...p, score: data.score } : p)
+              }));
             }
             if (data.name !== undefined && data.name !== currentPlayer.name) {
               hooks.updatePlayerName(change.doc.id, data.name);

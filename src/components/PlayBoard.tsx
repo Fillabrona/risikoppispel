@@ -18,8 +18,13 @@ interface PlayBoardProps {
   gameId?: string;
 }
 
-const TypewriterText = ({ text }: { text: string }) => {
+const TypewriterText = ({ text, onComplete }: { text: string; onComplete?: () => void }) => {
   const [displayedText, setDisplayedText] = useState('');
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
   
   useEffect(() => {
     let i = 0;
@@ -27,7 +32,10 @@ const TypewriterText = ({ text }: { text: string }) => {
     const interval = setInterval(() => {
       setDisplayedText(text.slice(0, i + 1));
       i++;
-      if (i >= text.length) clearInterval(interval);
+      if (i >= text.length) {
+        clearInterval(interval);
+        onCompleteRef.current?.();
+      }
     }, 35);
     return () => clearInterval(interval);
   }, [text]);
@@ -112,15 +120,20 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
   // Timer logic
   useEffect(() => {
     if (activeQuestion && displayStage === 'question' && gameState.settings?.timerEnabled && timerValue !== null && timerValue > 0) {
-      if (hostParams?.firstBuzz) return; // Freeze timer if someone buzzed
       const interval = setInterval(() => {
         setTimerValue((t) => (t !== null && t > 0 ? t - 1 : t));
       }, 1000);
       return () => clearInterval(interval);
     } else if (activeQuestion && displayStage === 'question' && gameState.settings?.timerEnabled && timerValue === 0) {
-      playSound('penalize');
+      // If someone has buzzed but didn't answer, penalize them
+      if (hostParams?.firstBuzz) {
+        handleDeductPoints(hostParams.firstBuzz.participantId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+      } else {
+        playSound('penalize');
+        // No one answered, just reveal answer or wait
+      }
     }
-  }, [activeQuestion, displayStage, timerValue, gameState.settings?.timerEnabled, playSound, hostParams?.firstBuzz]);
+  }, [activeQuestion, displayStage, timerValue, gameState.settings?.timerEnabled, playSound, hostParams?.firstBuzz, handleDeductPoints]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -200,12 +213,13 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           id: question.id, 
           endTime: gameState.settings?.timerEnabled ? Date.now() + gameState.settings.timerDuration * 1000 : null 
         },
-        firstBuzz: null
+        firstBuzz: null,
+        typingFinished: false
       });
     }
   };
 
-  const closeQuestion = async () => {
+  async function closeQuestion() {
     if (activeQuestion) {
       hooks.setQuestionAnswered(activeQuestion.catId, activeQuestion.question.id, true);
     }
@@ -214,11 +228,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
     if (gameId) {
       const gRef = doc(db, 'games', gameId);
-      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [] }, { merge: true });
+      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [], typingFinished: false }, { merge: true });
     }
-  };
+  }
 
-  const handleAwardPoints = (playerId: string, points: number) => {
+  function handleAwardPoints(playerId: string, points: number) {
     playSound('award');
     
     // Sync to Firestore for BuzzerView notification. 
@@ -231,9 +245,9 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     }
 
     closeQuestion();
-  };
+  }
 
-  const handleDeductPoints = (playerId: string, points: number) => {
+  function handleDeductPoints(playerId: string, points: number) {
     playSound('penalize');
     
     if (gameId) {
@@ -252,7 +266,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
          setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
        });
     }
-  };
+  }
 
   const gridCategories = React.useMemo(() => {
     return gameState.categories.map(cat => ({
@@ -457,9 +471,24 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                      handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                    }, 100);
                  }}
-                 className="bg-black/30 hover:bg-black/50 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all"
+                 className="bg-rose-700 hover:bg-rose-600 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all"
                >
                  Incorrect
+               </button>
+               <button
+                 onClick={() => {
+                   playSound('penalize');
+                   if (gameId) {
+                     const gRef = doc(db, 'games', gameId);
+                     const pId = hostParams.firstBuzz.participantId;
+                     const wrong = hostParams.wrongBuzzes || [];
+                     if (!wrong.includes(pId)) wrong.push(pId);
+                     setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
+                   }
+                 }}
+                 className="bg-black/30 hover:bg-black/50 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all"
+               >
+                 Skip
                </button>
             </div>
           </motion.div>
@@ -651,7 +680,14 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     </span>
                   ) : (
                     <span className="drop-shadow-lg">
-                      <TypewriterText text={activeQuestion.question.questionText} />
+                      <TypewriterText 
+                        text={activeQuestion.question.questionText} 
+                        onComplete={() => {
+                          if (gameId) {
+                            setDoc(doc(db, 'games', gameId), { typingFinished: true }, { merge: true });
+                          }
+                        }}
+                      />
                     </span>
                   )}
                 </motion.div>
