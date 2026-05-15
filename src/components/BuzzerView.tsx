@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, auth, loginAnonymously } from '../lib/firebase';
-import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
-import { Mic, Square, Loader2, Trophy, Minus, Plus } from 'lucide-react';
+import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { Mic, Square, Loader2, Minus, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSound } from '../hooks/useSound';
@@ -37,6 +37,7 @@ export default function BuzzerView() {
   const [isAuth, setIsAuth] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [isSendingBuzz, setIsSendingBuzz] = useState(false);
+  const [localBuzzed, setLocalBuzzed] = useState(false);
   const { playSound } = useSound(false);
   const wakeLockRef = useRef<any>(null);
 
@@ -165,6 +166,11 @@ export default function BuzzerView() {
         }
 
         setGameStatus(data);
+        
+        // Reset local buzz state if question cleared
+        if (!data.activeQuestion) {
+          setLocalBuzzed(false);
+        }
       }
     });
     return () => unsub();
@@ -322,7 +328,7 @@ export default function BuzzerView() {
   };
 
   const buzzOut = async () => {
-    if (!gameId || !gameStatus?.activeQuestion || gameStatus.firstBuzz || isSendingBuzz) return;
+    if (!gameId || !gameStatus?.activeQuestion || gameStatus.firstBuzz || isSendingBuzz || localBuzzed) return;
     
     // Safety check: only buzz if typing is finished
     if (!gameStatus.typingFinished) return;
@@ -338,36 +344,30 @@ export default function BuzzerView() {
       return; // Too late
     }
     
+    setLocalBuzzed(true);
     setIsSendingBuzz(true);
+
+    if (window.navigator?.vibrate) {
+      window.navigator.vibrate(50);
+    }
     
     const avatarName = localStorage.getItem('participantName') || name;
     const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(avatarName)}&backgroundColor=transparent`;
     
     try {
-      await runTransaction(db, async (transaction) => {
-        const gRef = doc(db, 'games', gameId);
-        const gSnap = await transaction.get(gRef);
-        
-        if (!gSnap.exists()) throw new Error("Game does not exist");
-        const data = gSnap.data();
-        
-        if (data.firstBuzz) {
-          // Someone already buzzed
-          return;
+      const gRef = doc(db, 'games', gameId);
+      await updateDoc(gRef, {
+        firstBuzz: {
+          participantId,
+          name: avatarName,
+          avatarUrl,
+          voiceUri,
+          time: new Date().toISOString(),
         }
-
-        transaction.update(gRef, {
-          firstBuzz: {
-            participantId,
-            name: avatarName,
-            avatarUrl,
-            voiceUri,
-            time: new Date().toISOString(),
-          }
-        });
       });
     } catch (e) {
-      console.error("Buzz transaction failed:", e);
+      // If update fails (e.g. security rule blocks because someone buzzed first)
+      console.log("Buzz rejected (someone else was faster or error):", e);
     } finally {
       setIsSendingBuzz(false);
     }
@@ -509,10 +509,14 @@ export default function BuzzerView() {
             <span className="text-white text-lg font-black tracking-tight line-clamp-1">{name}</span>
           </div>
         </div>
-        <div className="flex items-center bg-white/5 border border-white/10 p-2 rounded-xl">
-          <div className="flex flex-col items-center px-4 py-1">
-            <span className="text-amber-500/50 text-[10px] font-black uppercase tracking-[0.2em] leading-none mb-1">Score</span>
-            <span className="text-amber-400 text-3xl font-black tabular-nums leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">{myScore ?? 0}</span>
+        <div className="flex items-center">
+          <div className="bg-slate-800 border border-white/10 rounded-xl overflow-hidden flex flex-col min-w-[80px]">
+            <div className="bg-slate-700/50 px-3 py-1 border-b border-white/5">
+              <span className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em] block text-center">Score</span>
+            </div>
+            <div className="px-3 py-2 flex items-center justify-center">
+              <span className="text-amber-400 text-2xl font-black tabular-nums leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">{myScore ?? 0}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -524,36 +528,41 @@ export default function BuzzerView() {
             animate={{ opacity: 1, scale: 1 }}
             className="text-center space-y-6"
           >
-            <div className="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mx-auto border border-white/10 shadow-inner">
-               <motion.div
-                 animate={{ rotate: [0, 10, -10, 0] }}
-                 transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-               >
-                 <Trophy className="w-10 h-10 text-amber-500/80" />
-               </motion.div>
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-white/90 tracking-[0.2em] uppercase">Ready</h2>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Waiting for host to pick a card...</p>
+            <div className="space-y-4">
+              <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-cyan-500/20 animate-ping" />
+                <div className="w-3 h-3 bg-cyan-500 rounded-full shadow-[0_0_12px_rgba(6,182,212,0.6)]" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-xl font-black text-white/90 tracking-[0.3em] uppercase">Lobby Ready</h2>
+                <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[9px] opacity-70">Waiting for host to pick a card</p>
+              </div>
             </div>
           </motion.div>
         ) : (
-          <div className="relative group">
+          <div className="relative">
             {/* Visual indicator of "can buzz" state without outer glow */}
             <button
               onClick={buzzOut}
-              disabled={!canBuzz}
-              style={{ backgroundColor: canBuzz ? buzzerColor : undefined }}
-              className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
-                ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
-                someoneElseWon ? 'bg-slate-800 opacity-20 border-transparent saturate-0' : 
-                canBuzz ? 'brightness-100 scale-100' : 
-                'bg-slate-800 opacity-20 border-transparent saturate-0 scale-95'}`}
+              disabled={!canBuzz || localBuzzed}
+              style={{ backgroundColor: (canBuzz && !localBuzzed) ? buzzerColor : undefined }}
+              className={`w-[75vw] max-w-[280px] aspect-square rounded-full transition-all duration-200 transform active:scale-90 flex items-center justify-center select-none touch-none border-[10px] border-black/30 shadow-2xl
+                ${iWonBuzz ? 'bg-emerald-500 border-white/20' : 
+                someoneElseWon ? 'bg-slate-800 opacity-20 border-transparent saturate-0 grayscale' : 
+                (canBuzz && !localBuzzed) ? 'brightness-110 scale-100 ring-4 ring-white/10' : 
+                localBuzzed ? 'bg-cyan-600 animate-pulse border-white/10' :
+                'bg-slate-800 opacity-20 border-transparent saturate-0 grayscale scale-95'}`}
             >
               <div className="flex flex-col items-center justify-center">
-                <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${!canBuzz ? 'opacity-40' : 'opacity-100'}`}>
-                  {iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : canBuzz ? 'BUZZ' : 'WAIT'}
+                <span className={`text-3xl sm:text-4xl text-white font-black tracking-tight uppercase text-center px-8 leading-tight transition-all`}>
+                  {iWonBuzz ? 'YOUR TURN' : 
+                   someoneElseWon ? 'TOO SLOW' : 
+                   localBuzzed ? 'SENT!' :
+                   canBuzz ? 'BUZZ' : 'WAIT'}
                 </span>
+                {localBuzzed && !gameStatus?.firstBuzz && (
+                  <span className="text-[10px] text-white/60 font-bold mt-2 uppercase tracking-widest">Checking...</span>
+                )}
               </div>
             </button>
           </div>

@@ -19,7 +19,16 @@ service cloud.firestore {
 
     // Games collection
     match /games/{gameId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        // Allow host to reset buzzer or typing
+        (request.resource.data.firstBuzz == null) ||
+        // Only allow setting firstBuzz if it is currently null
+        (resource.data.firstBuzz == null && request.resource.data.firstBuzz != null) ||
+        // Allow other updates like wrongBuzzes if firstBuzz stays same
+        (request.resource.data.firstBuzz == resource.data.firstBuzz)
+      );
       
       // Participants subcollection
       match /participants/{participantId} {
