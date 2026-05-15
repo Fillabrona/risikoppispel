@@ -34,7 +34,7 @@ function HostView() {
 
   // Sync Firestore Participants to GameState
   useEffect(() => {
-    if (!gameId) return;
+    if (!gameId || !db) return;
     
     // Initialize game doc
     const gRef = doc(db, 'games', gameId);
@@ -42,17 +42,18 @@ function HostView() {
 
     // Listen for participants
     const participantsRef = collection(db, 'games', gameId, 'participants');
-    const unsub = onSnapshot(participantsRef, (snapshot) => {
+    const unsubParticipants = onSnapshot(participantsRef, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
           const data = change.doc.data();
+          // useGameState handles duplicate IDs internally now
           hooks.addPlayer(data.name, change.doc.id);
         }
       });
     });
 
-    return () => unsub();
-  }, [gameId, mode]); // Re-init on gameId or mode change
+    return () => unsubParticipants();
+  }, [gameId, mode, db]); // Included db for completeness
 
   useEffect(() => {
     localStorage.setItem('isMuted', String(isMuted));

@@ -55,12 +55,18 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
   const [hostParams, setHostParams] = useState<any>(null);
   const firstBuzzRef = useRef<any>(null);
 
+  // Hosted Game Logic - Run once on gameId initialization
   useEffect(() => {
     if (!gameId) return;
     const gRef = doc(db, 'games', gameId);
-    
-    // Ensure game status is playing when board is mounted
+    // Ensure game status is playing when board is first mounted
     setDoc(gRef, { status: 'playing', activeQuestion: null, firstBuzz: null }, { merge: true });
+  }, [gameId]);
+
+  // Handle Host Updates & Buzzes
+  useEffect(() => {
+    if (!gameId) return;
+    const gRef = doc(db, 'games', gameId);
 
     const unsub = onSnapshot(gRef, (docSnap) => {
       if (docSnap.exists()) {
