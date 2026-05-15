@@ -291,9 +291,9 @@ export default function BuzzerView() {
       </AnimatePresence>
 
       {/* Profile Bar */}
-      <div className="w-full max-w-sm flex items-center justify-between bg-white/5 border border-white/10 rounded-3xl p-4 backdrop-blur-md">
+      <div className="w-full max-w-sm flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md shadow-lg">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/10 overflow-hidden border border-white/20">
+          <div className="w-14 h-14 rounded-xl bg-white/10 overflow-hidden border border-white/10">
             <img 
               src={`https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(name)}&backgroundColor=transparent`} 
               alt={name} 
@@ -301,48 +301,51 @@ export default function BuzzerView() {
             />
           </div>
           <div className="flex flex-col">
-            <span className="text-white/40 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Contestant</span>
-            <span className="text-white text-xl font-black tracking-tight">{name}</span>
+            <span className="text-white/40 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Player</span>
+            <span className="text-white text-lg font-black tracking-tight line-clamp-1">{name}</span>
           </div>
         </div>
-        <div className="flex flex-col items-end">
-          <span className="text-amber-500/50 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Total Score</span>
-          <span className="text-amber-400 text-3xl font-black tabular-nums">{myScore}</span>
+        <div className="flex flex-col items-end pl-4 border-l border-white/10">
+          <span className="text-amber-500/50 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Score</span>
+          <span className="text-amber-400 text-2xl font-black tabular-nums leading-none">{myScore}</span>
         </div>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center w-full">
         {!gameStatus?.activeQuestion ? (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="text-center space-y-6"
           >
-            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10">
-              <Trophy className="w-10 h-10 text-amber-500 animate-pulse" />
+            <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto border border-white/10">
+              <Trophy className="w-8 h-8 text-amber-500/80" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-4xl font-black text-white tracking-widest uppercase">Waiting...</h2>
-              <p className="text-slate-400 font-medium tracking-wide">Host is selecting the next card</p>
+              <h2 className="text-2xl font-black text-white/90 tracking-[0.2em] uppercase">Ready</h2>
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Waiting for next card...</p>
             </div>
           </motion.div>
         ) : (
-          <button
-            onClick={buzzOut}
-            disabled={!canBuzz}
-            style={{ backgroundColor: canBuzz ? buzzerColor : undefined }}
-            className={`w-[85vw] max-w-sm aspect-square rounded-full transition-all transform active:scale-90 flex items-center justify-center select-none touch-none border-[12px] border-black/20
-              ${iWonBuzz ? 'bg-emerald-500 border-white/20' : 
-              someoneElseWon ? 'bg-slate-800 opacity-50 border-white/5' : 
-              canBuzz ? 'hover:brightness-110 active:brightness-90' : 
-              'bg-slate-800 opacity-50 border-white/5'}`}
-          >
-            <div className="flex flex-col items-center justify-center">
-              <span className="text-4xl sm:text-5xl text-white font-black tracking-tighter uppercase drop-shadow-md text-center px-6">
-                {iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : canBuzz ? 'BUZZ' : 'TIME UP'}
-              </span>
-            </div>
-          </button>
+          <div className="relative group">
+            {/* Visual indicator of "can buzz" state without outer glow */}
+            <button
+              onClick={buzzOut}
+              disabled={!canBuzz}
+              style={{ backgroundColor: canBuzz ? buzzerColor : undefined }}
+              className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30
+                ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
+                someoneElseWon ? 'bg-slate-800 opacity-40 border-transparent' : 
+                canBuzz ? 'hover:brightness-105 active:brightness-95' : 
+                'bg-slate-800 opacity-40 border-transparent'}`}
+            >
+              <div className="flex flex-col items-center justify-center">
+                <span className="text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight">
+                  {iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : canBuzz ? 'BUZZ' : 'WAIT'}
+                </span>
+              </div>
+            </button>
+          </div>
         )}
       </div>
 

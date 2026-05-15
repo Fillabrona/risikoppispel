@@ -204,13 +204,25 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
   const handleAwardPoints = (playerId: string, points: number) => {
     playSound('award');
     hooks.updatePlayerScore(playerId, points);
+    
+    // Sync to Firestore for BuzzerView notification
+    if (gameId) {
+      const pRef = doc(db, 'games', gameId, 'participants', playerId);
+      updateDoc(pRef, { score: (gameState.players.find(p => p.id === playerId)?.score || 0) + points });
+    }
+
     closeQuestion();
   };
 
   const handleDeductPoints = (playerId: string, points: number) => {
     playSound('penalize');
     hooks.updatePlayerScore(playerId, -points);
+    
     if (gameId) {
+       // Sync to Firestore
+       const pRef = doc(db, 'games', gameId, 'participants', playerId);
+       updateDoc(pRef, { score: Math.max(0, (gameState.players.find(p => p.id === playerId)?.score || 0) - points) });
+
        // Clear the buzz to let someone else try
        const gRef = doc(db, 'games', gameId);
        updateDoc(gRef, { firstBuzz: null });
