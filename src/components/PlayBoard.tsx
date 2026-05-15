@@ -497,7 +497,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
       {/* Game Title Display */}
       {gameState.title && (
-        <div className="w-full flex flex-col items-center justify-center py-4 z-10 pointer-events-none">
+        <div className="w-full flex-none flex items-center justify-center h-16 pointer-events-none z-10 border-b border-white/5 bg-black/10 backdrop-blur-sm">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-widest uppercase text-white/90 drop-shadow-md">
             {gameState.title}
           </h1>

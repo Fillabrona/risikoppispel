@@ -3,6 +3,7 @@ import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users,
 import React, { useState, useRef } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSound } from '../hooks/useSound';
 import { QRCodeSVG } from 'qrcode.react';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -148,6 +149,7 @@ export default function Editor({ gameState, hooks, onPlay, isMuted, setIsMuted, 
   const [modal, setModal] = useState<{ title: string; message: string } | null>(null);
   const [showQR, setShowQR] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { playSound } = useSound(isMuted);
   
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiCategoryCount, setAiCategoryCount] = useState<number | ''>(5);
@@ -387,6 +389,22 @@ Output ONLY valid JSON, no markdown formatting.
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleResetBoard = async () => {
+    playSound?.('click');
+    hooks.resetBoard();
+    if (gameId) {
+      try {
+        await deleteDoc(doc(db, 'games', gameId));
+        // Reset local gameId or just let it recreate?
+        // Actually, we usually want to keep the same URL for the session, 
+        // so we just clear the document content.
+        await setDoc(doc(db, 'games', gameId), { status: 'editor', activeQuestion: null, firstBuzz: null });
+      } catch (e) {
+        console.error("Failed to reset Firestore room:", e);
+      }
+    }
+  };
+
   const canPlay = gameState.players.length > 0 && 
     gameState.categories.length > 0 && 
     gameState.categories.some(c => c.questions.length > 0);
@@ -487,7 +505,7 @@ Output ONLY valid JSON, no markdown formatting.
 
         <div className="p-4 border-t border-slate-800 space-y-3">
           <button
-            onClick={hooks.resetBoard}
+            onClick={handleResetBoard}
             className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all border border-slate-700 hover:border-slate-600"
           >
             <RotateCcw className="w-4 h-4" />

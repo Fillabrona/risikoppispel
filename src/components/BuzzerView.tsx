@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, auth, loginAnonymously } from '../lib/firebase';
-import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { Mic, Square, Loader2, Trophy, Minus, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
@@ -36,6 +36,7 @@ export default function BuzzerView() {
 
   const [isAuth, setIsAuth] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [isSendingBuzz, setIsSendingBuzz] = useState(false);
   const { playSound } = useSound(false);
   const wakeLockRef = useRef<any>(null);
 
@@ -222,6 +223,31 @@ export default function BuzzerView() {
     }
   };
 
+  const playPreview = () => {
+    if (voiceUri) {
+      const audio = new Audio(voiceUri);
+      audio.play().catch(e => console.error("Preview failed:", e));
+    }
+  };
+
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 1024 * 1024) { // 1MB limit for safety
+      alert("File too large. Please keep it under 1MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setVoiceUri(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleJoin = async (overrideName?: string, overrideVoice?: string) => {
     if (isJoining) return;
     const n = overrideName || name;
@@ -238,6 +264,18 @@ export default function BuzzerView() {
     }
 
     setIsJoining(true);
+    
+    // Check if lobby exists
+    try {
+      const gSnap = await getDoc(doc(db, 'games', gameId));
+      if (!gSnap.exists()) {
+        alert("This lobby does not exist. Please check the code or ask the host for a new one.");
+        setIsJoining(false);
+        return;
+      }
+    } catch (e) {
+      console.error("Lobby check failed:", e);
+    }
     
     if (!participantId) {
       // Regenerate if lost
@@ -284,7 +322,7 @@ export default function BuzzerView() {
   };
 
   const buzzOut = async () => {
-    if (!gameId || !gameStatus?.activeQuestion || gameStatus.firstBuzz) return;
+    if (!gameId || !gameStatus?.activeQuestion || gameStatus.firstBuzz || isSendingBuzz) return;
     
     // Safety check: only buzz if typing is finished
     if (!gameStatus.typingFinished) return;
@@ -300,19 +338,39 @@ export default function BuzzerView() {
       return; // Too late
     }
     
+    setIsSendingBuzz(true);
+    
     const avatarName = localStorage.getItem('participantName') || name;
     const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(avatarName)}&backgroundColor=transparent`;
     
-    const gameRef = doc(db, 'games', gameId);
-    await setDoc(gameRef, {
-      firstBuzz: {
-        participantId,
-        name: avatarName,
-        avatarUrl,
-        voiceUri,
-        time: new Date().toISOString(),
-      }
-    }, { merge: true });
+    try {
+      await runTransaction(db, async (transaction) => {
+        const gRef = doc(db, 'games', gameId);
+        const gSnap = await transaction.get(gRef);
+        
+        if (!gSnap.exists()) throw new Error("Game does not exist");
+        const data = gSnap.data();
+        
+        if (data.firstBuzz) {
+          // Someone already buzzed
+          return;
+        }
+
+        transaction.update(gRef, {
+          firstBuzz: {
+            participantId,
+            name: avatarName,
+            avatarUrl,
+            voiceUri,
+            time: new Date().toISOString(),
+          }
+        });
+      });
+    } catch (e) {
+      console.error("Buzz transaction failed:", e);
+    } finally {
+      setIsSendingBuzz(false);
+    }
   };
 
   if (!joined) {
@@ -330,27 +388,42 @@ export default function BuzzerView() {
               className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-500 font-bold"
             />
             
-            <div className="bg-slate-700/50 p-4 rounded-xl border border-slate-600 flex flex-col items-center justify-center gap-3">
-              <span className="text-sm font-medium text-slate-300 text-center">Record a short voice clip of your name (max 2s)</span>
+            <div className="bg-slate-700/50 p-4 rounded-xl border border-slate-600 flex flex-col items-center justify-center gap-4">
+              <span className="text-sm font-medium text-slate-300 text-center">Your buzzer sound (Record or Upload)</span>
               
-              {!recording ? (
-                <button 
-                  onClick={startRecording}
-                  className="w-12 h-12 rounded-full bg-cyan-500 hover:bg-cyan-400 flex items-center justify-center transition-all text-slate-900"
-                >
-                  <Mic className="w-6 h-6" />
-                </button>
-              ) : (
-                <button 
-                  onClick={stopRecording}
-                  className="w-12 h-12 rounded-full bg-rose-500 hover:bg-rose-400 flex items-center justify-center transition-all animate-pulse text-white"
-                >
-                  <Square className="w-5 h-5 fill-current" />
-                </button>
-              )}
+              <div className="flex items-center gap-4">
+                {!recording ? (
+                  <button 
+                    onClick={startRecording}
+                    className="w-12 h-12 rounded-full bg-cyan-500 hover:bg-cyan-400 flex items-center justify-center transition-all text-slate-900 shadow-lg shadow-cyan-500/20"
+                  >
+                    <Mic className="w-6 h-6" />
+                  </button>
+                ) : (
+                  <button 
+                    onClick={stopRecording}
+                    className="w-12 h-12 rounded-full bg-rose-500 hover:bg-rose-400 flex items-center justify-center transition-all animate-pulse text-white shadow-lg shadow-rose-500/20"
+                  >
+                    <Square className="w-5 h-5 fill-current" />
+                  </button>
+                )}
+
+                <label className="w-12 h-12 rounded-full bg-slate-600 hover:bg-slate-500 flex items-center justify-center transition-all cursor-pointer text-white">
+                  <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
+                  <Plus className="w-6 h-6" />
+                </label>
+              </div>
               
               {voiceUri && !recording && (
-                <div className="text-xs text-emerald-400 font-bold bg-emerald-400/10 px-3 py-1 rounded-full">Recording Saved!</div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="text-[10px] text-emerald-400 font-bold bg-emerald-400/10 px-3 py-1 rounded-full uppercase tracking-wider">Voice Clip Ready</div>
+                  <button 
+                    onClick={playPreview}
+                    className="text-xs text-white/60 hover:text-white font-bold underline"
+                  >
+                    Preview Sound
+                  </button>
+                </div>
               )}
             </div>
             
@@ -436,9 +509,11 @@ export default function BuzzerView() {
             <span className="text-white text-lg font-black tracking-tight line-clamp-1">{name}</span>
           </div>
         </div>
-        <div className="flex flex-col items-end pl-4 border-l border-white/10">
-          <span className="text-amber-500/50 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Score</span>
-          <span className="text-amber-400 text-2xl font-black tabular-nums leading-none">{myScore ?? 0}</span>
+        <div className="flex items-center bg-white/5 border border-white/10 p-2 rounded-xl">
+          <div className="flex flex-col items-center px-4 py-1">
+            <span className="text-amber-500/50 text-[10px] font-black uppercase tracking-[0.2em] leading-none mb-1">Score</span>
+            <span className="text-amber-400 text-3xl font-black tabular-nums leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">{myScore ?? 0}</span>
+          </div>
         </div>
       </div>
 
