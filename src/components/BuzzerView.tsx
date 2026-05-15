@@ -333,10 +333,10 @@ export default function BuzzerView() {
               onClick={buzzOut}
               disabled={!canBuzz}
               style={{ backgroundColor: canBuzz ? buzzerColor : undefined }}
-              className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30
+              className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
                 ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
                 someoneElseWon ? 'bg-slate-800 opacity-40 border-transparent' : 
-                canBuzz ? 'hover:brightness-105 active:brightness-95' : 
+                canBuzz ? 'brightness-100' : 
                 'bg-slate-800 opacity-40 border-transparent'}`}
             >
               <div className="flex flex-col items-center justify-center">
