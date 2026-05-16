@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, auth, loginAnonymously } from '../lib/firebase';
 import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
-import { Mic, Square, Loader2, Trophy, Minus, Plus, Gamepad2 } from 'lucide-react';
+import { Mic, Square, Loader2, Trophy, Minus, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSound } from '../hooks/useSound';
@@ -167,6 +167,8 @@ export default function BuzzerView() {
 
         if (data.status === 'leaderboard' && data.players) {
            setCachedLeaderboard(data.players);
+        } else if (data.status === 'editor') {
+           setCachedLeaderboard(null);
         }
 
         setGameStatus(data);
@@ -353,12 +355,7 @@ export default function BuzzerView() {
     
     // Play buzzing local feedback instantly, even before server responds. 
     // This gives them instant satisfaction that they clicked.
-    if (voiceUri) {
-      const audio = new Audio(voiceUri);
-      audio.play().catch(() => playSound('reveal'));
-    } else {
-      playSound('reveal');
-    }
+    playSound('reveal');
 
     const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(avatarName)}&backgroundColor=transparent`;
     
@@ -443,20 +440,27 @@ export default function BuzzerView() {
             {kickReason}
           </div>
         )}
-        <div className="bg-slate-800 p-8 rounded-3xl w-full max-w-sm space-y-6 shadow-2xl">
-          <h1 className="text-3xl font-bold text-white text-center tracking-tight">Join Game</h1>
-          <div className="space-y-4">
-            <input 
-              type="text"
-              placeholder="Your Name (Nickname)"
-              maxLength={12}
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-cyan-500 font-bold"
-            />
+        <div className="bg-slate-800 p-8 rounded-[2rem] w-full max-w-sm space-y-8 shadow-2xl border border-white/5">
+          <div className="space-y-2 text-center">
+            <h1 className="text-4xl font-black text-white uppercase tracking-tight">Join Game</h1>
+            <p className="text-slate-400 font-medium text-sm">Enter the lobby to start playing!</p>
+          </div>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Nickname</label>
+              <input 
+                type="text"
+                placeholder="ex. QuizMaster"
+                maxLength={12}
+                value={name}
+                onChange={e => setName(e.target.value)}
+                className="w-full bg-slate-900/50 text-white rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-cyan-500 font-bold border border-slate-700/50 placeholder:text-slate-600 transition-all"
+              />
+            </div>
             
-            <div className="bg-slate-700/50 p-4 rounded-xl border border-slate-600 flex flex-col items-center justify-center gap-4">
-              <span className="text-sm font-medium text-slate-300 text-center">Your buzzer sound (Record or Upload)</span>
+            <div className="bg-slate-900/30 p-5 rounded-2xl border border-slate-700/50 flex flex-col items-center justify-center gap-4 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center z-10">Buzzer Sound (Optional)</span>
               
               <div className="flex items-center gap-4">
                 {!recording ? (
@@ -486,7 +490,7 @@ export default function BuzzerView() {
                   <div className="text-[10px] text-emerald-400 font-bold bg-emerald-400/10 px-3 py-1 rounded-full uppercase tracking-wider">Voice Clip Ready</div>
                   <button 
                     onClick={playPreview}
-                    className="text-xs text-white/60 hover:text-white font-bold underline"
+                    className="px-4 py-2 mt-1 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center shadow-md border border-slate-600"
                   >
                     Preview Sound
                   </button>
@@ -497,7 +501,7 @@ export default function BuzzerView() {
             <button 
               onClick={() => handleJoin()}
               disabled={!name.trim() || isJoining}
-              className="w-full bg-cyan-500 text-slate-900 font-bold py-4 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed transition-all mt-4 flex items-center justify-center gap-2"
+              className="w-full bg-cyan-500 text-slate-900 font-black py-4 rounded-2xl disabled:opacity-50 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:bg-cyan-400 hover:shadow-cyan-500/30"
             >
               {(isJoining || (!isAuth && name.trim())) && <Loader2 className="w-5 h-5 animate-spin" />}
               {isJoining ? 'Joining...' : (isAuth ? (localStorage.getItem('participantName') ? `Enter Lobby as ${localStorage.getItem('participantName')}` : 'Enter Lobby') : (name.trim() ? 'Connecting...' : 'Enter Name to Start'))}
@@ -587,46 +591,31 @@ export default function BuzzerView() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center w-full">
-        {!gameStatus?.activeQuestion ? (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center space-y-6"
+        <div className="relative group">
+          {/* Visual indicator of "can buzz" state without outer glow */}
+          <button
+            onPointerDown={(e) => {
+              e.preventDefault(); // Prevent double firing mouse/touch events
+              buzzOut();
+            }}
+            disabled={!canBuzz && !localHasClicked}
+            style={{ backgroundColor: (canBuzz || !gameStatus?.activeQuestion) ? buzzerColor : undefined }}
+            className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
+              ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
+              someoneElseWon ? 'bg-slate-800 opacity-20 border-transparent saturate-0' : 
+              isSkipped ? 'bg-slate-800 opacity-40 border-transparent saturate-0 scale-95' :
+              isPendingBuzz ? 'bg-slate-700 opacity-50 border-white/5 saturate-0 scale-95' :
+              (!gameStatus?.activeQuestion) ? 'brightness-100 scale-100 opacity-80' :
+              canBuzz ? 'brightness-100 scale-100' : 
+              'bg-slate-800 opacity-20 border-transparent saturate-0 scale-95'}`}
           >
-            <div className="w-24 h-24 bg-slate-800/80 rounded-[2rem] flex items-center justify-center mx-auto border border-white/5 shadow-inner">
-                 <Gamepad2 className="w-10 h-10 text-slate-500/80" />
+            <div className="flex flex-col items-center justify-center">
+              <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${(!canBuzz && !iWonBuzz && !isPendingBuzz && !isSkipped && gameStatus?.activeQuestion) ? 'opacity-40' : 'opacity-100'}`}>
+                {!gameStatus?.activeQuestion ? 'WAITING...' : iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : isSkipped ? 'SKIPPED!' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : 'WAIT'}
+              </span>
             </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-white/90 tracking-[0.2em] uppercase">Ready</h2>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Waiting for host to pick a card...</p>
-            </div>
-          </motion.div>
-        ) : (
-          <div className="relative group">
-            {/* Visual indicator of "can buzz" state without outer glow */}
-            <button
-              onPointerDown={(e) => {
-                e.preventDefault(); // Prevent double firing mouse/touch events
-                buzzOut();
-              }}
-              disabled={!canBuzz && !localHasClicked}
-              style={{ backgroundColor: canBuzz ? buzzerColor : undefined }}
-              className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
-                ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
-                someoneElseWon ? 'bg-slate-800 opacity-20 border-transparent saturate-0' : 
-                isSkipped ? 'bg-slate-800 opacity-40 border-transparent saturate-0 scale-95' :
-                isPendingBuzz ? 'bg-slate-700 opacity-50 border-white/5 saturate-0 scale-95' :
-                canBuzz ? 'brightness-100 scale-100' : 
-                'bg-slate-800 opacity-20 border-transparent saturate-0 scale-95'}`}
-            >
-              <div className="flex flex-col items-center justify-center">
-                <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${(!canBuzz && !iWonBuzz && !isPendingBuzz && !isSkipped) ? 'opacity-40' : 'opacity-100'}`}>
-                  {iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : isSkipped ? 'SKIPPED!' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : 'WAIT'}
-                </span>
-              </div>
-            </button>
-          </div>
-        )}
+          </button>
+        </div>
       </div>
 
       {/* Footer Info */}

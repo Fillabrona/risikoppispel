@@ -843,13 +843,34 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
               </div>
               <div className="flex flex-col items-center gap-6 mt-16 z-20">
                 <button 
-                  onClick={() => { playSound('click'); hooks.resetBoard(); }} 
+                  onClick={async () => {
+                    playSound('click');
+                    hooks.resetBoard();
+                    if (gameId) {
+                      await setDoc(doc(db, 'games', gameId), { status: 'editor', players: gameState.players.map(p => ({ ...p, score: 0 })) }, { merge: true });
+                      for (const player of gameState.players) {
+                        const pRef = doc(db, 'games', gameId, 'participants', player.id);
+                        setDoc(pRef, { score: 0 }, { merge: true }).catch(() => {});
+                      }
+                    }
+                  }} 
                   className="px-10 py-4 bg-white text-black hover:bg-slate-100 rounded-2xl font-black text-lg uppercase tracking-widest transition-all active:scale-95 shadow-lg border border-black/10"
                 >
                   Play Again
                 </button>
                 <button 
-                  onClick={() => { playSound('click'); hooks.resetBoard(); onEdit(); }} 
+                  onClick={async () => {
+                    playSound('click');
+                    hooks.resetBoard();
+                    if (gameId) {
+                      await setDoc(doc(db, 'games', gameId), { status: 'editor', players: gameState.players.map(p => ({ ...p, score: 0 })) }, { merge: true });
+                      for (const player of gameState.players) {
+                        const pRef = doc(db, 'games', gameId, 'participants', player.id);
+                        setDoc(pRef, { score: 0 }, { merge: true }).catch(() => {});
+                      }
+                    }
+                    onEdit();
+                  }} 
                   className="px-6 py-2 text-white/40 hover:text-white transition-colors uppercase tracking-widest text-xs font-bold"
                 >
                   Exit to Editor
