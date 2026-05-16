@@ -351,6 +351,15 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     }
   }, [gameState.categories, activeQuestion, triggerCheckQueue, maxQuestionsPerRow, gridCategories, playSound, triggeredBonusIds]);
 
+  useEffect(() => {
+    if (allAnswered && gameId && !activeQuestion) {
+       setDoc(doc(db, 'games', gameId), { 
+         status: 'finished', 
+         players: gameState.players 
+       }, { merge: true });
+    }
+  }, [allAnswered, gameId, activeQuestion, gameState.players]);
+
   return (
     <div 
       ref={containerRef}

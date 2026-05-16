@@ -38,6 +38,7 @@ export default function BuzzerView() {
   const [isJoining, setIsJoining] = useState(false);
   const [isSendingBuzz, setIsSendingBuzz] = useState(false);
   const [localHasClicked, setLocalHasClicked] = useState(false);
+  const [cachedVictoryData, setCachedVictoryData] = useState<{ players: any[] } | null>(null);
   const { playSound } = useSound(false);
   const wakeLockRef = useRef<any>(null);
 
@@ -160,11 +161,17 @@ export default function BuzzerView() {
           setLocalHasClicked(false);
         }
 
+        if (data.status === 'finished' && data.players) {
+           setCachedVictoryData({ players: data.players });
+        } else if (data.status === 'playing' || data.status === 'editor') {
+           setCachedVictoryData(null);
+        }
+
         setGameStatus(data);
       }
     });
     return () => unsub();
-  }, [gameId, participantId, isAuth, gameStatus?.firstBuzz?.participantId, playSound]);
+  }, [gameId, participantId, isAuth, gameStatus?.firstBuzz?.participantId]);
 
   // Clear score notification
   useEffect(() => {
@@ -338,16 +345,6 @@ export default function BuzzerView() {
     setLocalHasClicked(true);
     
     const avatarName = localStorage.getItem('participantName') || name;
-    
-    // Play buzzing local feedback instantly, even before server responds. 
-    // This gives them instant satisfaction that they clicked.
-    if (voiceUri) {
-      const audio = new Audio(voiceUri);
-      audio.play().catch(() => playSound('reveal'));
-    } else {
-      playSound('reveal');
-    }
-
     const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(avatarName)}&backgroundColor=transparent`;
     
     try {
@@ -467,6 +464,90 @@ export default function BuzzerView() {
 
   const buzzerColor = getBuzzerColor(participantId);
 
+  useEffect(() => {
+    if (cachedVictoryData) {
+      const players = cachedVictoryData.players || [];
+      const sortedPlayers = players.slice().sort((a: any, b: any) => b.score - a.score);
+      const myRank = sortedPlayers.findIndex((p: any) => p.id === participantId) + 1;
+      
+      if (myRank === 1) {
+        setTimeout(() => {
+          confetti({
+             particleCount: 150,
+             spread: 80,
+             origin: { y: 0.6 }
+          });
+        }, 500);
+      }
+    }
+  }, [cachedVictoryData, participantId]);
+
+  if (cachedVictoryData) {
+    const players = cachedVictoryData.players || [];
+    const sortedPlayers = players.slice().sort((a: any, b: any) => b.score - a.score);
+    const top3 = sortedPlayers.slice(0, 3);
+    const myRank = sortedPlayers.findIndex((p: any) => p.id === participantId) + 1;
+
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white relative overflow-hidden">
+        <h1 className="text-4xl font-black mb-8 text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-yellow-600 drop-shadow-sm uppercase tracking-widest text-center">
+          Victory
+        </h1>
+        
+        <div className="flex flex-row items-end justify-center w-full max-w-sm h-64 gap-4 mb-8">
+          {top3.map((player: any, index: number) => {
+            const isFirst = index === 0;
+            const isSecond = index === 1;
+            const isThird = index === 2;
+            
+            let heightClass = "h-32";
+            if (isFirst) heightClass = "h-48";
+            if (isThird) heightClass = "h-24";
+
+            let colorClass = "bg-gradient-to-t from-yellow-400 to-amber-600";
+            if (isSecond) colorClass = "bg-gradient-to-t from-slate-300 to-slate-500 scale-95 origin-bottom";
+            if (isThird) colorClass = "bg-gradient-to-t from-orange-500 to-red-700 scale-90 origin-bottom";
+            
+            let orderClass = "order-2";
+            if (isSecond) orderClass = "order-1";
+            if (isThird) orderClass = "order-3";
+
+            return (
+              <motion.div
+                key={player.id}
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.2 + 0.3 }}
+                className={`relative flex flex-col items-center justify-end w-full max-w-[100px] flex-1 ${heightClass} ${colorClass} rounded-2xl overflow-visible pt-10 ${orderClass}`}
+              >
+                <div className="absolute -top-10">
+                  <div className={`rounded-xl border-2 border-slate-700 bg-slate-800 overflow-hidden ${isFirst ? 'w-20 h-20' : 'w-16 h-16'}`}>
+                    <img 
+                      src={`https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(player.name)}`} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col items-center pb-4 text-center w-full px-2">
+                  <div className={`font-bold uppercase tracking-widest text-slate-950 mb-1 line-clamp-1 w-full truncate ${isFirst ? 'text-sm' : 'text-xs'}`}>{player.name}</div>
+                  <div className={`font-black text-white drop-shadow-md ${isFirst ? 'text-2xl' : 'text-xl'}`}>{player.score}</div>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full max-w-sm text-center">
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-sm mb-1">Your Rank</p>
+          <p className="text-2xl font-black text-white">
+            {myRank > 0 ? `#${myRank}` : '-'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 select-none overflow-hidden touch-manipulation relative">
       <AnimatePresence mode="wait">
@@ -553,7 +634,7 @@ export default function BuzzerView() {
               disabled={!canBuzz && !localHasClicked}
               style={{ backgroundColor: canBuzz ? buzzerColor : undefined }}
               className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
-                ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
+                ${iWonBuzz ? (localHasClicked && gameStatus?.firstBuzz?.participantId !== participantId ? 'bg-yellow-500 border-white/10' : 'bg-emerald-500 border-white/10') : 
                 someoneElseWon ? 'bg-slate-800 opacity-20 border-transparent saturate-0' : 
                 canBuzz ? 'brightness-100 scale-100' : 
                 'bg-slate-800 opacity-20 border-transparent saturate-0 scale-95'}`}
