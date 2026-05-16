@@ -635,21 +635,26 @@ export default function BuzzerView() {
   const buzzerColor = getBuzzerColor(participantId);
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 select-none overflow-hidden touch-manipulation relative">
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 select-none touch-manipulation relative">
       <AnimatePresence mode="wait">
         {scoreNotification && (
           <motion.div
             key={`score-${Date.now()}`}
-            initial={{ opacity: 0, y: 40, scale: 0.9 }}
+            initial={{ opacity: 0, y: 20, scale: 0.85 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-x-4 bottom-8 z-[100] flex items-center justify-center pointer-events-none"
+            exit={{ opacity: 0, y: -10, scale: 0.9 }}
+            transition={{ 
+              type: 'spring', 
+              damping: 30, 
+              stiffness: 400,
+              mass: 0.8
+            }}
+            className="fixed inset-x-4 bottom-12 z-[110] flex items-center justify-center pointer-events-none"
           >
             <motion.div 
-              className={`relative overflow-hidden rounded-2xl border-2 border-white/20 px-6 py-4 shadow-xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500' : 'bg-rose-500'}`}
+              className={`relative overflow-hidden rounded-2xl border-2 border-white/20 px-5 py-3 shadow-xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500' : 'bg-rose-500'}`}
             >
-              <div className="flex items-center gap-3 text-white text-4xl sm:text-5xl font-black tabular-nums">
+              <div className="flex items-center gap-2.5 text-white text-3xl sm:text-4xl font-black tabular-nums">
                 {scoreNotification.type === 'plus' ? '+' : '-'}{scoreNotification.delta}
               </div>
             </motion.div>

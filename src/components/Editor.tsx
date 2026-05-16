@@ -613,7 +613,7 @@ Output ONLY valid JSON, no markdown formatting.
                     </div>
                   )}
                   {gameState.categories.map((category) => (
-                    <div key={category.id} className="bg-slate-800/40 border border-slate-700 rounded-3xl flex flex-col backdrop-blur-xl shadow-xl transition-all hover:border-slate-600">
+                    <div key={category.id} className="bg-slate-800/40 border border-slate-700 rounded-3xl flex flex-col backdrop-blur-xl shadow-xl transition-all hover:border-slate-600 relative z-[1]">
                       <div className="bg-slate-900/50 px-6 py-4 flex justify-between items-center border-b border-slate-700/50">
                         <div className="flex items-center space-x-4 flex-1">
                           <input
