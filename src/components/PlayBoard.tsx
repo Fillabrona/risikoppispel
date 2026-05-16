@@ -456,28 +456,33 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
         '--color-answer-text': gameState.theme.answerText,
       } as React.CSSProperties}
     >
-      {/* Top Bar Navigation */}
-      <div className="absolute top-0 right-0 p-4 flex gap-2 z-50 opacity-30 hover:opacity-100 transition-opacity duration-300">
-        <button onClick={() => { playSound('click'); setBoardScale(s => Math.min(s + 0.1, 2)); }} className="bg-black/30 hover:bg-black/50 p-2.5 rounded-xl text-white transition-all">
-          <ZoomIn className="w-5 h-5" />
-        </button>
-        <button onClick={() => { playSound('click'); setBoardScale(s => Math.max(s - 0.1, 0.5)); }} className="bg-black/30 hover:bg-black/50 p-2.5 rounded-xl text-white transition-all">
-          <ZoomOut className="w-5 h-5" />
-        </button>
-        <button onClick={() => { playSound('click'); setShowQR(v => !v); }} className="bg-black/30 hover:bg-black/50 p-2.5 rounded-xl text-white transition-all">
-          <QrCode className="w-5 h-5" />
-        </button>
-        <button onClick={() => { playSound('click'); setIsMuted(m => !m); }} className="bg-black/30 hover:bg-black/50 p-2.5 rounded-xl text-white transition-all">
-          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-        </button>
-        <button onClick={toggleFullscreen} className="bg-black/30 hover:bg-black/50 p-2.5 rounded-xl text-white transition-all">
-          {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-        </button>
-        <button onClick={() => { playSound('click'); onEdit(); }} className="bg-black/30 hover:bg-black/50 p-2.5 rounded-xl text-white transition-all">
-          <Settings className="w-5 h-5" />
-        </button>
+      {/* Header with Title and Controls */}
+      <div className="w-full flex-none flex items-center justify-center h-16 relative z-10 border-b border-white/5 bg-black/10 backdrop-blur-sm">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-widest uppercase text-white/90 drop-shadow-md leading-none mt-[2px] pointer-events-none">
+          {gameState.title}
+        </h1>
+        
+        <div className="absolute inset-y-0 right-4 flex items-center gap-2 opacity-30 hover:opacity-100 transition-opacity duration-300">
+          <button onClick={() => { playSound('click'); setBoardScale(s => Math.min(s + 0.1, 2)); }} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+            <ZoomIn className="w-5 h-5" />
+          </button>
+          <button onClick={() => { playSound('click'); setBoardScale(s => Math.max(s - 0.1, 0.5)); }} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+            <ZoomOut className="w-5 h-5" />
+          </button>
+          <button onClick={() => { playSound('click'); setShowQR(v => !v); }} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+            <QrCode className="w-5 h-5" />
+          </button>
+          <button onClick={() => { playSound('click'); setIsMuted(m => !m); }} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          </button>
+          <button onClick={toggleFullscreen} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+          </button>
+          <button onClick={() => { playSound('click'); onEdit(); }} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+            <Settings className="w-5 h-5" />
+          </button>
+        </div>
       </div>
-
       <AnimatePresence>
         {showQR && (
           <motion.div 
@@ -488,21 +493,19 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
             className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm"
           >
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ ease: "easeOut", duration: 0.2 }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               className="bg-slate-900 p-12 rounded-[2.5rem] border border-slate-700/50 flex flex-col items-center relative shadow-2xl"
             >
               <button 
                 onClick={() => setShowQR(false)}
                 className="absolute top-6 right-6 p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-                title="Close"
               >
                 <X className="w-5 h-5" />
               </button>
               <h2 className="text-2xl font-black text-white mb-8 uppercase tracking-widest text-center">Join Lobby</h2>
-              <div className="p-4 bg-white rounded-2xl shadow-xl">
+              <div className="p-4 bg-white rounded-2xl">
                 <QRCodeSVG 
                   value={`${window.location.origin}${window.location.pathname}#/buzzer/${gameId}`} 
                   size={260} 
@@ -517,14 +520,14 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       <AnimatePresence>
         {hostParams?.firstBuzz && activeQuestion && (
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
             transition={{ duration: 0.2 }}
-            className="fixed top-12 left-1/2 -translate-x-1/2 z-[80] bg-emerald-500 rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center gap-6 border-4 border-white/20 w-fit min-w-[400px]"
+            className="fixed top-[72px] left-1/2 z-[80] bg-emerald-600 rounded-3xl p-4 flex flex-row items-center gap-8 border-4 border-white/10 w-fit max-w-[90vw]"
           >
-            <div className="flex items-center gap-6 w-full justify-center">
-              <div className="w-24 h-24 rounded-2xl overflow-hidden bg-emerald-900/20 border-2 border-white/30 shrink-0">
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="w-16 h-16 rounded-xl overflow-hidden bg-black/20 border border-white/20">
                 <img 
                   src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
                   alt="" 
@@ -532,15 +535,14 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                 />
               </div>
               <div className="flex flex-col text-white">
-                <span className="text-emerald-100 font-bold tracking-widest uppercase text-sm mb-1">First to Buzz</span>
-                <span className="text-4xl font-black tracking-tight">{hostParams.firstBuzz.name}</span>
+                <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[10px]">First to Buzz</span>
+                <span className="text-2xl font-black tracking-tight whitespace-nowrap">{hostParams.firstBuzz.name}</span>
               </div>
             </div>
             
-            <div className="flex gap-2 w-full justify-center mt-2 bg-emerald-900/10 p-2 rounded-2xl">
+            <div className="flex gap-2 shrink-0">
                <button
                  onClick={() => {
-                   // Ensure player exists in local state
                    if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
                      hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
                    }
@@ -549,7 +551,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                      handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                    }, 100);
                  }}
-                 className="flex-1 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all text-sm uppercase tracking-wider text-center"
+                 className="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider whitespace-nowrap"
                >
                  Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
                </button>
@@ -563,7 +565,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                      handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                    }, 100);
                  }}
-                 className="bg-rose-700 hover:bg-rose-600 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider"
+                 className="bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider"
                >
                  Incorr.
                </button>
@@ -578,7 +580,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                      setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
                    }
                  }}
-                 className="bg-black/30 hover:bg-black/50 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider"
+                 className="bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider"
                >
                  Skip
                </button>
@@ -586,15 +588,6 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Game Title Display */}
-      {gameState.title && (
-        <div className="w-full flex-none flex items-center justify-center h-16 pointer-events-none z-10 border-b border-white/5 bg-black/10 backdrop-blur-sm">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-widest uppercase text-white/90 drop-shadow-md leading-none mt-[2px]">
-            {gameState.title}
-          </h1>
-        </div>
-      )}
 
       {/* Main Board Area */}
       <div className="flex-1 px-4 sm:px-6 lg:px-8 flex items-stretch justify-center min-h-0 z-10 mb-2 mt-4 relative overflow-hidden">
