@@ -640,16 +640,16 @@ export default function BuzzerView() {
         {scoreNotification && (
           <motion.div
             key={`score-${Date.now()}`}
-            initial={{ opacity: 0, y: 100, scale: 0.9 }}
+            initial={{ opacity: 0, y: 40, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200, mass: 0.8 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed inset-x-4 bottom-8 z-[100] flex items-center justify-center pointer-events-none"
           >
             <motion.div 
-              className={`relative overflow-hidden rounded-3xl border-4 border-white/20 p-5 px-10 shadow-2xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500' : 'bg-rose-500'}`}
+              className={`relative overflow-hidden rounded-2xl border-2 border-white/20 px-6 py-4 shadow-xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500' : 'bg-rose-500'}`}
             >
-              <div className="flex items-center gap-4 text-white text-5xl sm:text-6xl font-black tabular-nums">
+              <div className="flex items-center gap-3 text-white text-4xl sm:text-5xl font-black tabular-nums">
                 {scoreNotification.type === 'plus' ? '+' : '-'}{scoreNotification.delta}
               </div>
             </motion.div>

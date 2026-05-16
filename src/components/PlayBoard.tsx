@@ -525,60 +525,52 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       <AnimatePresence>
         {(hostParams?.firstBuzz || (gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question')) && (
           <motion.div 
-            layout
-            initial={{ opacity: 0, y: -40, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: -40, x: '-50%' }}
-            transition={{ 
-              type: 'spring', 
-              damping: 25, 
-              stiffness: 200,
-              layout: { type: 'spring', damping: 25, stiffness: 200 }
-            }}
-            className="fixed top-4 left-1/2 z-[80] flex flex-row items-center gap-4"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-[80] flex flex-row items-center gap-4"
           >
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="popLayout" initial={false}>
               {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && (
                 <motion.div 
                   key="timer-box"
-                  layout
-                  initial={{ opacity: 0, scale: 0.8, x: -20 }}
+                  initial={{ opacity: 0, scale: 0.8, x: -10 }}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                  className="px-8 py-3 bg-slate-900 border-4 border-white/10 rounded-3xl flex items-center justify-center backdrop-blur-xl h-full min-h-[110px]"
+                  exit={{ opacity: 0, scale: 0.8, x: -10 }}
+                  className="px-6 py-2.5 bg-slate-900 border-2 border-white/10 rounded-2xl flex items-center justify-center backdrop-blur-xl h-full min-h-[80px]"
                 >
-                  <span className={`text-6xl font-mono font-black tabular-nums tracking-widest ${timerValue <= 5 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
+                  <span className={`text-4xl font-mono font-black tabular-nums tracking-widest ${timerValue <= 5 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
                     {timerValue.toString().padStart(2, '0')}
                   </span>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="popLayout" initial={false}>
               {hostParams?.firstBuzz && activeQuestion && (
                 <motion.div 
                   key="buzz-box"
-                  layout
-                  initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                  initial={{ opacity: 0, scale: 0.8, x: 10 }}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, x: 20 }}
-                  className="bg-emerald-600 rounded-[2rem] p-3 sm:p-4 flex flex-row items-center gap-4 sm:gap-8 border-4 border-white/20 w-fit max-w-[95vw] backdrop-blur-md"
+                  exit={{ opacity: 0, scale: 0.8, x: 10 }}
+                  className="bg-emerald-600 rounded-[2rem] p-2.5 sm:p-3 flex flex-row items-center gap-3 sm:gap-6 border-4 border-white/20 w-fit max-w-[95vw] backdrop-blur-md"
                 >
-                  <div className="flex items-center gap-3 sm:gap-4 shrink-0 pl-1 sm:pl-2">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-black/20 border-2 border-white/20">
+                  <div className="flex items-center gap-3 sm:gap-4 shrink-0 pl-1">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden bg-black/20 border-2 border-white/20">
                       <img 
                         src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
                         alt="" 
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="flex flex-col text-white max-w-[120px] sm:max-w-[200px]">
-                      <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[8px] sm:text-[10px]">First to Buzz</span>
-                      <span className="text-lg sm:text-2xl font-black tracking-tight truncate">{hostParams.firstBuzz.name}</span>
+                    <div className="flex flex-col text-white max-w-[100px] sm:max-w-[180px]">
+                      <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[7px] sm:text-[9px]">First to Buzz</span>
+                      <span className="text-base sm:text-xl font-black tracking-tight truncate">{hostParams.firstBuzz.name}</span>
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex gap-1.5 shrink-0">
                      <button
                        onClick={() => {
                          if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
@@ -589,7 +581,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                            handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                          }, 100);
                        }}
-                       className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-2.5 px-4 sm:px-8 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap shadow-none"
+                       className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-2 px-3 sm:px-6 rounded-[1rem] transition-all text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap"
                      >
                        Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
                      </button>
@@ -603,7 +595,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                            handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                          }, 100);
                        }}
-                       className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-2.5 px-3 sm:px-6 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider shadow-none"
+                       className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-2 px-3 sm:px-5 rounded-[1rem] transition-all text-[10px] sm:text-xs uppercase tracking-wider"
                      >
                        WRONG
                      </button>
@@ -618,7 +610,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                            setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
                          }
                        }}
-                       className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-2.5 px-3 sm:px-6 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider shadow-none"
+                       className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-2 px-3 sm:px-5 rounded-[1rem] transition-all text-[10px] sm:text-xs uppercase tracking-wider"
                      >
                        Skip
                      </button>
@@ -762,7 +754,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
             )}
 
             <div 
-              className={`flex-1 flex items-center justify-center z-10 transition-all duration-500 ${hostParams?.firstBuzz ? 'pt-40' : ''}`} 
+              className={`flex-1 flex items-center justify-center z-10 transition-all duration-300 ${hostParams?.firstBuzz ? 'pt-32 sm:pt-40' : ''}`} 
               onClick={() => {
                 if (displayStage === 'bonus_intro') {
                   playSound('reveal');
