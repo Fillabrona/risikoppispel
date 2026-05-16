@@ -51,13 +51,22 @@ function HostView() {
       snapshot.docChanges().forEach((change) => {
         const data = change.doc.data();
         if (change.type === 'added') {
-          hooks.addPlayer(data.name, change.doc.id);
+          hooks.addPlayer(data.name, change.doc.id, data.voiceUri);
           if (data.score !== undefined) {
              hooks.updatePlayerScore(change.doc.id, data.score);
           }
         } else if (change.type === 'modified') {
           // Sync score or name if they changed in Firestore (e.g. from Phone view)
           const currentPlayer = playersRef.current.find(p => p.id === change.doc.id);
+          
+          // Also sync voiceUri if it changed
+          if (data.voiceUri) {
+            hooks.setGameState((s: any) => ({
+              ...s,
+              players: s.players.map((p: any) => p.id === change.doc.id ? { ...p, voiceUri: data.voiceUri } : p)
+            }));
+          }
+
           if (currentPlayer) {
             if (data.score !== undefined && data.score !== currentPlayer.score) {
               // Direct absolute update to prevent desync

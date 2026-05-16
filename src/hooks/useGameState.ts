@@ -189,16 +189,26 @@ export function useGameState() {
     });
   };
 
-  const addPlayer = (name?: any, id?: any) => {
+  const addPlayer = (name?: any, id?: any, voiceUri?: string) => {
     setGameState((s) => {
       const pId = typeof id === 'string' ? id : `p-${Date.now()}`;
-      if (s.players.find(p => p.id === pId)) return s; // Duplicate guard
+      if (s.players.find(p => p.id === pId)) {
+        // If it already exists, maybe update voiceUri? Yes, if it joined again.
+        if (voiceUri) {
+          return {
+            ...s,
+            players: s.players.map(p => p.id === pId ? { ...p, voiceUri } : p)
+          };
+        }
+        return s;
+      }
 
       const playerName = typeof name === 'string' ? name : `Player ${s.players.length + 1}`;
       const newPlayer = {
         id: pId,
         name: playerName,
-        score: 0
+        score: 0,
+        voiceUri: typeof voiceUri === 'string' ? voiceUri : undefined
       };
       return {
         ...s,

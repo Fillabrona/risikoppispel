@@ -38,6 +38,7 @@ export default function BuzzerView() {
   const [isJoining, setIsJoining] = useState(false);
   const [isSendingBuzz, setIsSendingBuzz] = useState(false);
   const [localHasClicked, setLocalHasClicked] = useState(false);
+  const [cachedLeaderboard, setCachedLeaderboard] = useState<any[] | null>(null);
   const { playSound } = useSound(false);
   const wakeLockRef = useRef<any>(null);
 
@@ -160,7 +161,14 @@ export default function BuzzerView() {
           setLocalHasClicked(false);
         }
 
+        if (data.status === 'leaderboard' && data.players) {
+           setCachedLeaderboard(data.players);
+        }
+
         setGameStatus(data);
+      } else {
+        setGameStatus(null);
+        // If host deleted the game, we will fallback to cachedLeaderboard if it exists
       }
     });
     return () => unsub();
@@ -369,7 +377,6 @@ export default function BuzzerView() {
             participantId,
             name: avatarName,
             avatarUrl,
-            voiceUri,
             time: new Date().toISOString(),
             serverTime: new Date().toISOString(), // We could use serverTimestamp, but ISOString sorts well enough for client tracking
           }
@@ -382,6 +389,40 @@ export default function BuzzerView() {
       setIsSendingBuzz(false);
     }
   };
+
+  if (cachedLeaderboard) {
+    const sorted = [...cachedLeaderboard].sort((a, b) => b.score - a.score);
+    const myRank = sorted.findIndex(p => p.id === participantId) + 1;
+    const myInfo = sorted.find(p => p.id === participantId);
+
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 space-y-8 select-none">
+        <div className="flex flex-col items-center gap-2">
+          <h1 className="text-4xl font-black text-white uppercase tracking-widest text-center text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-yellow-600">Game Over</h1>
+          {myRank > 0 && <span className="text-white/60 font-medium">You finished in #{myRank} place!</span>}
+        </div>
+
+        <div className="w-full max-w-sm space-y-3">
+          {sorted.slice(0, 3).map((p, i) => (
+            <div key={p.id} className={`flex items-center gap-4 p-4 rounded-2xl ${p.id === participantId ? 'bg-cyan-500/20 border border-cyan-500/50' : 'bg-white/5 border border-white/5'}`}>
+               <div className="flex-none font-black text-xl text-white/40 w-6 text-center">{i + 1}</div>
+               <img src={`https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`} alt="" className="w-10 h-10 rounded-full bg-slate-800" />
+               <div className="flex-1 min-w-0">
+                  <div className="font-bold text-white truncate">{p.name}</div>
+               </div>
+               <div className="font-black text-xl text-white tabular-nums">{p.score}</div>
+            </div>
+          ))}
+        </div>
+        <button 
+          onClick={() => { setJoined(false); setCachedLeaderboard(null); }}
+          className="mt-8 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-all text-sm uppercase tracking-wider"
+        >
+          Exit Room
+        </button>
+      </div>
+    );
+  }
 
   if (!joined) {
     return (

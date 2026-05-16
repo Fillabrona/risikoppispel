@@ -1,5 +1,5 @@
 import { Category, GameState, presetThemes, Theme } from '../types';
-import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users, Palette, CheckCircle2, Copy, Download, Upload, Wand2, Loader2, ChevronDown, Volume2, VolumeX, AlertCircle, X, QrCode } from 'lucide-react';
+import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users, Palette, CheckCircle2, Copy, Download, Upload, Wand2, Loader2, ChevronDown, Volume2, VolumeX, AlertCircle, X, QrCode, HelpCircle } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { motion, AnimatePresence } from 'motion/react';
@@ -589,6 +589,20 @@ Output ONLY valid JSON, no markdown formatting.
                 </div>
 
                 <div className="grid gap-8">
+                  {gameState.categories.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-20 px-4 text-center border-2 border-dashed border-slate-700/50 rounded-3xl bg-slate-800/20">
+                      <LayoutDashboard className="w-16 h-16 text-slate-600 mb-4" />
+                      <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest mb-2">No Categories</h3>
+                      <p className="text-slate-500 font-medium mb-6 max-w-sm">Create a new category to start adding questions for your trivia game.</p>
+                      <button
+                        onClick={hooks.addCategory}
+                        className="flex items-center space-x-2 font-bold text-white bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl transition-all shadow-lg"
+                      >
+                        <Plus className="w-5 h-5" />
+                        <span>Add Category</span>
+                      </button>
+                    </div>
+                  )}
                   {gameState.categories.map((category) => (
                     <div key={category.id} className="bg-slate-800/40 border border-slate-700 rounded-3xl overflow-hidden backdrop-blur-xl shadow-xl transition-all hover:border-slate-600">
                       <div className="bg-slate-900/50 px-6 py-4 flex justify-between items-center border-b border-slate-700/50">
@@ -629,6 +643,20 @@ Output ONLY valid JSON, no markdown formatting.
 
                       <div className="p-6">
                         <div className="space-y-4">
+                          {category.questions.length === 0 && (
+                            <div className="flex flex-col items-center justify-center py-12 px-4 text-center border-2 border-dashed border-slate-700/50 rounded-2xl bg-slate-900/50">
+                              <HelpCircle className="w-12 h-12 text-slate-600 mb-3" />
+                              <h4 className="text-lg font-bold text-slate-400 mb-1">No Questions Yet</h4>
+                              <p className="text-sm text-slate-500 mb-4">Add your first question to this category.</p>
+                              <button
+                                onClick={() => hooks.addQuestion(category.id)}
+                                className="flex items-center space-x-2 font-bold text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 px-4 py-2 rounded-lg transition-all"
+                              >
+                                <Plus className="w-4 h-4" />
+                                <span>Add Question</span>
+                              </button>
+                            </div>
+                          )}
                           {category.questions.map((q, qIndex) => (
                             <div key={q.id} className="bg-slate-900/80 border border-slate-700/50 hover:border-slate-600 rounded-2xl p-5 flex flex-col sm:flex-row gap-4 shadow-lg relative group transition-colors">
                               <div className="flex flex-col gap-2 sm:w-24 shrink-0">
@@ -933,6 +961,29 @@ Output ONLY valid JSON, no markdown formatting.
                 </div>
 
                 <div className="grid gap-4">
+                  {gameState.players.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-20 px-4 text-center border-2 border-dashed border-slate-700/50 rounded-3xl bg-slate-800/20">
+                      <Users className="w-16 h-16 text-slate-600 mb-4" />
+                      <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest mb-2">No Players</h3>
+                      <p className="text-slate-500 font-medium mb-6 max-w-sm">Players will appear here when they join your lobby via QR code, or you can add them manually.</p>
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => setShowQR(true)}
+                          className="flex items-center space-x-2 font-bold text-white bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-xl transition-all shadow-lg"
+                        >
+                          <QrCode className="w-5 h-5" />
+                          <span>Show QR Code</span>
+                        </button>
+                        <button
+                          onClick={hooks.addPlayer}
+                          className="flex items-center space-x-2 font-bold text-white bg-purple-600 hover:bg-purple-500 px-6 py-3 rounded-xl transition-all shadow-lg"
+                        >
+                          <Plus className="w-5 h-5" />
+                          <span>Add Manually</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {gameState.players.map((player, idx) => (
                     <div key={player.id} className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 bg-slate-800/40 p-5 rounded-2xl border border-slate-700 shadow-lg backdrop-blur-xl group hover:border-slate-600 transition-colors">
                       <div className="flex items-center justify-center shrink-0">

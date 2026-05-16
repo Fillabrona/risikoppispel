@@ -99,13 +99,18 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
         setHostParams(data);
         
         // Handle new buzzes
-        if (data.firstBuzz && (!firstBuzzRef.current || firstBuzzRef.current.time !== data.firstBuzz.time)) {
+        if (data.firstBuzz && (!firstBuzzRef.current || firstBuzzRef.current.participantId !== data.firstBuzz.participantId || firstBuzzRef.current.serverTime !== data.firstBuzz.serverTime)) {
           firstBuzzRef.current = data.firstBuzz;
-          if (data.firstBuzz.voiceUri) {
-            const audio = new Audio(data.firstBuzz.voiceUri);
-            audio.play().catch(e => console.error("Voice playback failed:", e));
+          
+          const player = gameState.players.find(p => p.id === data.firstBuzz.participantId);
+          if (player?.voiceUri) {
+            const audio = new Audio(player.voiceUri);
+            audio.play().catch(e => {
+              console.error("Voice playback failed:", e);
+              playSound('reveal'); // generic buzzer sound
+            });
           } else {
-            playSound('award'); // fallback if no voice
+            playSound('reveal'); // generic buzzer sound
           }
         } else if (!data.firstBuzz) {
           firstBuzzRef.current = null;
@@ -116,6 +121,12 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
   }, [gameId, playSound]);
 
   const allAnswered = gameState.categories.length > 0 && gameState.categories.every(cat => cat.questions.length > 0 && cat.questions.every(q => q.isAnswered));
+
+  useEffect(() => {
+    if (allAnswered && !activeQuestion && gameId) {
+      setDoc(doc(db, 'games', gameId), { status: 'leaderboard', players: gameState.players }, { merge: true });
+    }
+  }, [allAnswered, activeQuestion, gameId, gameState.players]);
 
   // Timer logic
   useEffect(() => {
