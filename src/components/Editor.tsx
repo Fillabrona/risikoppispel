@@ -410,7 +410,7 @@ Output ONLY valid JSON, no markdown formatting.
         // Also reset all participants scores to 0 in firestore
         for (const player of gameState.players) {
            const pRef = doc(db, 'games', gameId, 'participants', player.id);
-           setDoc(pRef, { score: 0 }, { merge: true });
+           setDoc(pRef, { score: 0, resetAt: Date.now() }, { merge: true });
         }
       } catch (e) {
         console.error("Failed to reset Firestore room:", e);
@@ -847,6 +847,44 @@ Output ONLY valid JSON, no markdown formatting.
                         <input type="number" 
                           value={gameState.settings?.timerDuration || 30} 
                           onChange={e => hooks.updateSettings({ timerDuration: parseInt(e.target.value) || 30 })}
+                          className="w-24 px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white text-center font-bold text-xl drop-shadow-md" 
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
+                      <div>
+                        <h3 className="font-bold text-white text-lg">Buzzer Activation Delay</h3>
+                        <p className="text-sm text-slate-400 mt-1">Require players to wait before buzzing in.</p>
+                      </div>
+                      <label className="relative flex items-center p-2 cursor-pointer group">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer" 
+                          checked={gameState.settings?.buzzerDelayEnabled || false} 
+                          onChange={(e) => hooks.updateSettings({ buzzerDelayEnabled: e.target.checked })} 
+                        />
+                        <div className="w-8 h-8 rounded border-2 border-slate-700 bg-slate-900 peer-checked:bg-indigo-500 peer-checked:border-indigo-500 transition-all flex items-center justify-center shadow-inner group-hover:border-indigo-400">
+                          <svg 
+                            className={`w-5 h-5 text-white pointer-events-none transition-transform ${gameState.settings?.buzzerDelayEnabled ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} 
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </div>
+                      </label>
+                    </div>
+
+                    {gameState.settings?.buzzerDelayEnabled && (
+                      <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
+                        <div>
+                          <h3 className="font-bold text-white text-lg">Buzzer Delay Duration</h3>
+                          <p className="text-sm text-slate-400 mt-1">Seconds to wait after question finishes typing.</p>
+                        </div>
+                        <input type="number" 
+                          value={gameState.settings?.buzzerDelayDuration || 3} 
+                          step="1"
+                          onChange={e => hooks.updateSettings({ buzzerDelayDuration: parseFloat(e.target.value) || 3 })}
                           className="w-24 px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white text-center font-bold text-xl drop-shadow-md" 
                         />
                       </div>

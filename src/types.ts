@@ -40,6 +40,8 @@ export type GameSettings = {
   timerEnabled: boolean;
   timerDuration: number;
   timerOnBuzzOnly?: boolean;
+  buzzerDelayEnabled?: boolean;
+  buzzerDelayDuration?: number;
 };
 
 export type GameState = {

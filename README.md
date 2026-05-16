@@ -1,20 +1,31 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+  <img src="https://api.dicebear.com/9.x/shapes/svg?seed=Risiko&backgroundColor=050a30" alt="Risiko oppi Spel Logo" width="120" height="120">
+  <h1>Risiko oppi Spel</h1>
+  <p>A highly customizable, fully responsive Jeopardy-style trivia game with editor and immersive TV play modes.</p>
 </div>
 
-# Run and deploy your AI Studio app
+## 🎮 About the Game
+**Risiko oppi Spel** is a multiplayer trivia game that brings the excitement of TV game shows straight to your living room or classroom. Host games on a big screen (like a TV or projector) while players use their phones as buzzers!
 
-This contains everything you need to run your app locally.
+### ✨ Features
+- **Live Multiplayer**: Real-time buzzers using mobile devices via a simple QR code scan.
+- **Customizable Themes**: Multiple built-in themes (Classic, Neon Cyberpunk, Dark Glass, and more) or create your own custom styling.
+- **Host Editor**: Easily create, edit, and manage your game board, categories, and questions.
+- **TV Presentation Mode**: An immersive, cinematic fullscreen view designed perfectly for large displays with animations, sound effects, and typewriter text.
+- **Smart Buzzers**: Prevent false starts, track wrong answers, and add custom buzzer sounds!
 
-View your app in AI Studio: https://ai.studio/apps/fe05367f-2bb1-46f9-b4c0-7cce626d05b4
+## 🎲 How to Play
+1. **The Host**: One person creates a lobby and opens the **Host / Presentation** view on a large screen or TV.
+2. **The Players**: Everyone else scans the QR code shown on the screen using their smartphones to join the lobby.
+3. **The Game**: 
+   - The host picks a category and point value.
+   - The question is revealed on the big screen.
+   - Players must wait for the question to finish typing (and any preset delay) before buzzing in.
+   - First to buzz gets to answer! The host uses their dashboard to award or deduct points.
 
-## Run Locally
+## 🛠 Features for Hosts
+- **Reset Board**: Start a fresh game with one click while keeping your players in the lobby.
+- **Timer Settings**: Enforce answering speed with custom timed questions, either globally or starting only after a player buzzes.
+- **Media Support**: Easily inject life into your game show!
 
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Enjoy playing **Risiko oppi Spel**!

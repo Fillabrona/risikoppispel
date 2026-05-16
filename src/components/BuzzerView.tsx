@@ -122,14 +122,17 @@ export default function BuzzerView() {
           if (data.score !== lastNotifiedScore.current && joined) {
             const prevScore = lastNotifiedScore.current || 0;
             const newScore = data.score;
-            const isReset = gameStatus?.status === 'editor' || (newScore === 0 && prevScore !== 0 && gameStatus?.status === 'editor');
+            const isEditorOnlyFallback = gameStatus?.status === 'editor' || (newScore === 0 && prevScore !== 0 && gameStatus?.status === 'editor');
             const isNegativeRestart = prevScore < 0 && newScore === 0;
+            const isGameReset = data.resetAt && (Date.now() - data.resetAt < 5000);
+            
+            const isReset = isGameReset || isEditorOnlyFallback || isNegativeRestart;
             
             const diff = newScore - prevScore;
             lastNotifiedScore.current = newScore;
             
             // Only trigger if difference is non-zero and NOT a reset/negative restart
-            if (diff !== 0 && !isReset && !isNegativeRestart) {
+            if (diff !== 0 && !isReset) {
               setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus', id: Date.now() });
               if (diff > 0) {
                 playSound('award');
@@ -576,14 +579,14 @@ export default function BuzzerView() {
                 {!recording ? (
                   <button 
                     onClick={startRecording}
-                    className="w-12 h-12 rounded-full bg-cyan-500 hover:bg-cyan-400 flex items-center justify-center transition-all text-slate-900 shadow-lg shadow-cyan-500/20"
+                    className="w-12 h-12 rounded-full bg-cyan-500 hover:bg-cyan-400 flex items-center justify-center transition-all text-slate-900"
                   >
                     <Mic className="w-6 h-6" />
                   </button>
                 ) : (
                   <button 
                     onClick={stopRecording}
-                    className="w-12 h-12 rounded-full bg-rose-500 hover:bg-rose-400 flex items-center justify-center transition-all animate-pulse text-white shadow-lg shadow-rose-500/20"
+                    className="w-12 h-12 rounded-full bg-rose-500 hover:bg-rose-400 flex items-center justify-center transition-all animate-pulse text-white"
                   >
                     <Square className="w-5 h-5 fill-current" />
                   </button>

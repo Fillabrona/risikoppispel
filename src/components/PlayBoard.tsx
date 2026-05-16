@@ -800,7 +800,13 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                         text={activeQuestion.question.questionText} 
                         onComplete={() => {
                           if (gameId) {
-                            setDoc(doc(db, 'games', gameId), { typingFinished: true }, { merge: true });
+                            if (gameState.settings?.buzzerDelayEnabled && gameState.settings.buzzerDelayDuration) {
+                              setTimeout(() => {
+                                setDoc(doc(db, 'games', gameId), { typingFinished: true }, { merge: true });
+                              }, gameState.settings.buzzerDelayDuration * 1000);
+                            } else {
+                              setDoc(doc(db, 'games', gameId), { typingFinished: true }, { merge: true });
+                            }
                           }
                         }}
                       />
