@@ -6,7 +6,7 @@ import React from 'react';
 import { useSound } from '../hooks/useSound';
 import Confetti from 'react-confetti';
 import { QRCodeSVG } from 'qrcode.react';
-import { collection, doc, setDoc, updateDoc, onSnapshot, getDoc, runTransaction } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db, loginAnonymously } from '../lib/firebase';
 
 interface PlayBoardProps {
@@ -298,71 +298,48 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     }
   }
 
-  async function handleAwardPoints(playerId: string, points: number) {
+  function handleAwardPoints(playerId: string, points: number) {
+    playSound('award');
+    
+    // Sync to Firestore for BuzzerView notification. 
+    // The host's local state will be updated by the listener in App.tsx to avoid doubling.
     if (gameId) {
-       playSound('award');
-       try {
-         const pRef = doc(db, 'games', gameId, 'participants', playerId);
-         await runTransaction(db, async (transaction) => {
-           const pSnap = await transaction.get(pRef);
-           if (!pSnap.exists()) return;
-           const currentScore = pSnap.data().score || 0;
-           transaction.update(pRef, { score: currentScore + points });
-           
-           // Clear buzz
-           const gRef = doc(db, 'games', gameId);
-           const gSnap = await transaction.get(gRef);
-           if (gSnap.exists()) {
-              transaction.update(gRef, { firstBuzz: null });
-           }
-         });
-       } catch (e) {
-         console.error("Award points transaction failed:", e);
-       }
+      const pRef = doc(db, 'games', gameId, 'participants', playerId);
+      const currentPlayer = gameState.players.find(p => p.id === playerId);
+      const newScore = (currentPlayer?.score || 0) + points;
+      setDoc(pRef, { score: newScore }, { merge: true });
     }
+
     closeQuestion();
   }
 
-  async function handleDeductPoints(playerId: string, points: number, isTimeout: boolean = false) {
+  function handleDeductPoints(playerId: string, points: number, isTimeout: boolean = false) {
     if (gameId) {
        playSound('penalize');
-       try {
-         const pRef = doc(db, 'games', gameId, 'participants', playerId);
-         const gRef = doc(db, 'games', gameId);
+       // Sync to Firestore
+       const pRef = doc(db, 'games', gameId, 'participants', playerId);
+       const currentPlayer = gameState.players.find(p => p.id === playerId);
+       
+       // Ensure we don't penalize twice for the same timeout
+       if (isTimeout && hostParams?.timedOutPlayers?.includes(playerId)) return;
+       
+       const newScore = (currentPlayer?.score || 0) - points;
+       setDoc(pRef, { score: newScore }, { merge: true });
 
-         await runTransaction(db, async (transaction) => {
-           const pSnap = await transaction.get(pRef);
-           const gSnap = await transaction.get(gRef);
-           
-           if (!pSnap.exists() || !gSnap.exists()) return;
-           
-           const gData = gSnap.data();
-           const timedOut = gData.timedOutPlayers || [];
-           const wrong = gData.wrongBuzzes || [];
-           
-           // CRITICAL: Prevent double deduction if already processed for this timeout
-           if (isTimeout && timedOut.includes(playerId)) return;
-           if (!isTimeout && wrong.includes(playerId)) return;
-
-           const currentScore = pSnap.data().score || 0;
-           transaction.update(pRef, { score: currentScore - points });
-           
-           if (!wrong.includes(playerId)) wrong.push(playerId);
-           if (isTimeout && !timedOut.includes(playerId)) timedOut.push(playerId);
-           
-           const update: any = { 
-             firstBuzz: null, 
-             wrongBuzzes: wrong, 
-             timedOutPlayers: timedOut 
-           };
-           if (gameState.settings?.timerOnBuzzOnly) {
-             update['activeQuestion.endTime'] = null;
-           }
-           transaction.update(gRef, update);
-         });
-       } catch (e) {
-         console.error("Deduct points transaction failed:", e);
-       }
+       // Clear the buzz to let someone else try, but track who got it wrong
+       const gRef = doc(db, 'games', gameId);
+       getDoc(gRef).then(snap => {
+         const data = snap.data();
+         const wrong = data?.wrongBuzzes || [];
+         if (!wrong.includes(playerId)) wrong.push(playerId);
+         const timedOut = data?.timedOutPlayers || [];
+         if (isTimeout && !timedOut.includes(playerId)) timedOut.push(playerId);
+         const update: any = { firstBuzz: null, wrongBuzzes: wrong, timedOutPlayers: timedOut };
+         if (gameState.settings?.timerOnBuzzOnly) {
+           update['activeQuestion.endTime'] = null;
+         }
+         setDoc(gRef, update, { merge: true });
+       });
     }
   }
 
@@ -549,106 +526,83 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
         {(hostParams?.firstBuzz || (gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question')) && (
           <motion.div 
             layout
-            initial={{ opacity: 0, y: -40, x: '-50%', scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, x: '-50%', scale: 1 }}
-            exit={{ opacity: 0, y: -40, x: '-50%', scale: 0.95 }}
-            transition={{ 
-              duration: 0.4, 
-              layout: { type: 'spring', damping: 25, stiffness: 300 },
-              opacity: { duration: 0.2 }
-            }}
-            className="fixed top-[15%] sm:top-[88px] bottom-6 sm:bottom-auto left-1/2 z-[80] flex flex-row items-center gap-3 w-max max-w-[95vw]"
+            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+            transition={{ duration: 0.3, layout: { type: 'spring', damping: 25, stiffness: 300 } }}
+            className="fixed top-[72px] left-1/2 z-[80] flex flex-row items-center gap-4"
           >
-            <AnimatePresence mode="popLayout">
-              {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && (
-                <motion.div 
-                  key="timer"
-                  layout
-                  initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                  className="px-6 py-4 bg-slate-900/90 border border-white/10 rounded-3xl flex items-center justify-center shadow-2xl backdrop-blur-xl min-w-[80px] sm:min-w-[100px] h-fit"
-                >
-                  <span className={`text-4xl sm:text-5xl font-mono font-black tabular-nums tracking-widest ${timerValue <= 5 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
-                    {timerValue.toString().padStart(2, '0')}
-                  </span>
-                </motion.div>
-              )}
+            {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && (
+              <div className="px-8 py-3 bg-black/60 border border-white/10 rounded-3xl flex items-center justify-center shadow-2xl backdrop-blur-md h-full min-h-[96px]">
+                <span className={`text-5xl font-mono font-black tabular-nums tracking-widest ${timerValue <= 5 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
+                  {timerValue.toString().padStart(2, '0')}
+                </span>
+              </div>
+            )}
 
-              {hostParams?.firstBuzz && activeQuestion && (
-                <motion.div 
-                  key="buzzer"
-                  layout
-                  initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                  className="bg-emerald-600 rounded-[2rem] p-2 sm:p-3 pr-4 sm:pr-6 flex flex-row items-center gap-3 sm:gap-6 border-4 border-white/10 w-fit max-w-[90vw] shadow-2xl relative overflow-hidden h-fit"
-                >
-                  {/* Inner glow/glass effect */}
-                  <div className="absolute inset-x-0 top-0 h-1/2 bg-white/10 pointer-events-none" />
-                  
-                  <div className="flex items-center gap-2 sm:gap-4 shrink-0 pl-1">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden bg-black/20 border-2 border-white/20 shadow-lg">
-                      <img 
-                        src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
-                        alt="" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex flex-col text-white max-w-[100px] sm:max-w-none">
-                      <span className="text-emerald-100/60 font-bold uppercase tracking-[0.2em] text-[8px] sm:text-[9px] mb-0.5 sm:mb-1">First to Buzz</span>
-                      <span className="text-lg sm:text-2xl font-black tracking-tight truncate sm:whitespace-nowrap drop-shadow-sm">{hostParams.firstBuzz.name}</span>
-                    </div>
+            {hostParams?.firstBuzz && activeQuestion && (
+              <div className="bg-emerald-600 rounded-3xl p-4 flex flex-row items-center gap-8 border-4 border-white/10 w-fit max-w-[90vw] shadow-2xl">
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-black/20 border border-white/20">
+                    <img 
+                      src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  
-                  <div className="flex gap-1.5 sm:gap-2 shrink-0 py-1">
-                     <button
-                       onClick={() => {
-                         if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
-                           hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
-                         }
-                         setTimeout(() => {
-                           const pId = hostParams.firstBuzz.participantId;
-                           handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
-                         }, 100);
-                       }}
-                       className="bg-white text-emerald-700 hover:bg-emerald-50 active:scale-95 font-black py-2 sm:py-3 px-4 sm:px-6 rounded-xl sm:rounded-2xl transition-all text-[10px] sm:text-sm uppercase tracking-wider whitespace-nowrap shadow-md"
-                     >
-                       Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
-                     </button>
-                     <button
-                       onClick={() => {
-                         if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
-                           hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
-                         }
-                         setTimeout(() => {
-                           const pId = hostParams.firstBuzz.participantId;
-                           handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
-                         }, 100);
-                       }}
-                       className="bg-rose-500/20 hover:bg-rose-500/40 active:scale-95 text-rose-100 font-bold py-2 sm:py-3 px-3 sm:px-4 rounded-xl sm:rounded-2xl transition-all text-[10px] sm:text-sm uppercase tracking-wider border border-rose-400/30"
-                     >
-                       Incorr.
-                     </button>
-                     <button
-                       onClick={() => {
-                         playSound('penalize');
-                         if (gameId) {
-                           const gRef = doc(db, 'games', gameId);
-                           const pId = hostParams.firstBuzz.participantId;
-                           const wrong = hostParams.wrongBuzzes || [];
-                           if (!wrong.includes(pId)) wrong.push(pId);
-                           setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
-                         }
-                       }}
-                       className="bg-black/20 hover:bg-black/40 active:scale-95 text-white/70 font-bold py-2 sm:py-3 px-3 sm:px-4 rounded-xl sm:rounded-2xl transition-all text-[10px] sm:text-sm uppercase tracking-wider border border-white/5"
-                     >
-                       Skip
-                     </button>
+                  <div className="flex flex-col text-white">
+                    <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[10px]">First to Buzz</span>
+                    <span className="text-2xl font-black tracking-tight whitespace-nowrap">{hostParams.firstBuzz.name}</span>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+                
+                <div className="flex gap-2 shrink-0">
+                   <button
+                     onClick={() => {
+                       if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
+                         hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
+                       }
+                       setTimeout(() => {
+                         const pId = hostParams.firstBuzz.participantId;
+                         handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+                       }, 100);
+                     }}
+                     className="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider whitespace-nowrap"
+                   >
+                     Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
+                   </button>
+                   <button
+                     onClick={() => {
+                       if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
+                         hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
+                       }
+                       setTimeout(() => {
+                         const pId = hostParams.firstBuzz.participantId;
+                         handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+                       }, 100);
+                     }}
+                     className="bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider"
+                   >
+                     Incorr.
+                   </button>
+                   <button
+                     onClick={() => {
+                       playSound('penalize');
+                       if (gameId) {
+                         const gRef = doc(db, 'games', gameId);
+                         const pId = hostParams.firstBuzz.participantId;
+                         const wrong = hostParams.wrongBuzzes || [];
+                         if (!wrong.includes(pId)) wrong.push(pId);
+                         setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
+                       }
+                     }}
+                     className="bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider"
+                   >
+                     Skip
+                   </button>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

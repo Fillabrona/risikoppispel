@@ -27,33 +27,9 @@ export default function BuzzerView() {
   const [participantId, setParticipantId] = useState('');
   const [gameStatus, setGameStatus] = useState<any>(null);
   const [myScore, setMyScore] = useState<number | null>(null);
-  const lastNotifiedScore = useRef<number | null>(null);
-  const [scoreNotification, setScoreNotification] = useState<{ delta: number, type: 'plus' | 'minus', id: number } | null>(null);
+  const [scoreNotification, setScoreNotification] = useState<{ delta: number, type: 'plus' | 'minus' } | null>(null);
   
-  const buzzedRecently = useRef(false);
   const [recording, setRecording] = useState(false);
-
-  const triggerConfetti = () => {
-    const btn = document.getElementById('buzzer-button');
-    let origin = { y: 0.7, x: 0.5 };
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      origin = {
-        y: (rect.top + rect.height / 2) / window.innerHeight,
-        x: (rect.left + rect.width / 2) / window.innerWidth
-      };
-    }
-
-    confetti({
-      particleCount: 120,
-      spread: 90,
-      origin,
-      colors: [getBuzzerColor(participantId), '#ffffff', '#FFD700'],
-      ticks: 250,
-      gravity: 1.2,
-      scalar: 1.1
-    });
-  };
   const [voiceUri, setVoiceUri] = useState<string>('');
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
@@ -137,24 +113,26 @@ export default function BuzzerView() {
       if (snap.exists()) {
         const data = snap.data();
         if (data.score !== undefined) {
-          // Check if we already handled this score change
-          // Ignore pending writes (local optimistic updates) to avoid double notifications
-          if (myScore !== null && data.score !== myScore && joined && !snap.metadata.hasPendingWrites) {
+          if (myScore !== null && data.score !== myScore && joined) {
             const diff = data.score - myScore;
-            // Only trigger if difference is non-zero and we haven't notified for this specific target score yet
-            if (diff !== 0 && lastNotifiedScore.current !== data.score) {
-              lastNotifiedScore.current = data.score;
-              setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus', id: Date.now() });
+            // Only trigger if difference is non-zero
+            if (diff !== 0) {
+              setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus' });
               if (diff > 0) {
                 playSound('award');
-                triggerConfetti();
+                confetti({
+                  particleCount: 100,
+                  spread: 80,
+                  origin: { y: 0.7, x: 0.5 },
+                  colors: [getBuzzerColor(participantId), '#ffffff'],
+                  ticks: 200,
+                  gravity: 1.2,
+                  scalar: 1.2
+                });
               } else {
                 playSound('penalize');
               }
             }
-          } else if (myScore === null) {
-            // First time loading score, just set it
-            lastNotifiedScore.current = data.score;
           }
           setMyScore(data.score);
         }
@@ -654,28 +632,28 @@ export default function BuzzerView() {
       <AnimatePresence mode="wait">
         {scoreNotification && (
           <motion.div
-            key={scoreNotification.id}
+            key={Date.now()}
             initial={{ opacity: 0, y: 100, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            exit={{ opacity: 0, y: -50, scale: 0.9 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-24 sm:bottom-32 z-[100] flex items-center justify-center pointer-events-none p-6"
+            className="fixed inset-x-0 bottom-32 z-[100] flex items-center justify-center pointer-events-none p-6"
           >
             <motion.div 
               initial={{ rotate: -5 }}
               animate={{ rotate: 0 }}
-              className={`relative overflow-hidden rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-4 border-white/20 p-1 bg-slate-900 w-full max-w-[280px] sm:max-w-xs`}
+              className={`relative overflow-hidden rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-4 border-white/20 p-1 bg-slate-900`}
             >
-              <div className={`px-6 py-8 sm:px-10 sm:py-10 rounded-[2.2rem] flex flex-col items-center gap-4 ${scoreNotification.type === 'plus' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-rose-400 to-rose-600'}`}>
+              <div className={`px-10 py-10 rounded-[2.2rem] flex flex-col items-center gap-4 ${scoreNotification.type === 'plus' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-rose-400 to-rose-600'}`}>
                 <div className="bg-white/20 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white">
                   {scoreNotification.type === 'plus' ? 'Point Scored' : 'Point Deducted'}
                 </div>
-                <div className="flex items-center gap-2 text-white text-5xl sm:text-7xl font-black tabular-nums">
-                  {scoreNotification.type === 'plus' ? <Plus className="w-10 h-10 sm:w-12 sm:h-12" /> : <Minus className="w-10 h-10 sm:w-12 sm:h-12" />}
+                <div className="flex items-center gap-2 text-white text-7xl font-black tabular-nums">
+                  {scoreNotification.type === 'plus' ? <Plus className="w-12 h-12" /> : <Minus className="w-12 h-12" />}
                   {scoreNotification.delta}
                 </div>
-                <div className="text-white/80 font-bold uppercase tracking-widest text-[10px] sm:text-xs text-center">
-                  {scoreNotification.type === 'plus' ? 'Keep it up!' : (wasTimedOut ? 'Timed out! Be faster!' : 'Nice try!')}
+                <div className="text-white/80 font-bold uppercase tracking-widest text-xs">
+                  {scoreNotification.type === 'plus' ? 'Keep it up!' : (wasTimedOut ? 'Too slow!' : 'Nice try!')}
                 </div>
               </div>
               
