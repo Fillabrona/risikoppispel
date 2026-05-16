@@ -751,7 +751,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
             {/* JUDGING AREA REMOVE DUPLICATE TIMER RENDER */}
             
             <div 
-              className={`flex-1 flex items-center justify-center z-10 transition-all duration-500 ease-in-out ${hostParams?.firstBuzz ? 'pt-48 sm:pt-64' : 'pt-0'}`} 
+              className="flex-1 flex items-center justify-center z-10" 
               onClick={() => {
                 if (displayStage === 'bonus_intro') {
                   playSound('reveal');
