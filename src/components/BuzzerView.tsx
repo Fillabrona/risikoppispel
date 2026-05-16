@@ -713,7 +713,7 @@ export default function BuzzerView() {
           >
             <div className="flex flex-col items-center justify-center">
               <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${(!canBuzz && !iWonBuzz && !isPendingBuzz && !isSkipped && gameStatus?.activeQuestion) ? 'opacity-40' : 'opacity-100'}`}>
-                {!gameStatus?.activeQuestion ? 'WAITING...' : iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : wasTimedOut ? 'TIMED OUT (BLOCKED)' : isSkipped ? 'SKIPPED!' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : 'WAIT'}
+                {!gameStatus?.activeQuestion ? 'WAITING...' : iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : wasWrong ? 'WRONG' : wasTimedOut ? 'TIMED OUT (BLOCKED)' : isSkipped ? 'SKIPPED!' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : 'WAIT'}
               </span>
             </div>
           </button>
