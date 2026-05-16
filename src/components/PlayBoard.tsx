@@ -245,24 +245,14 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
          
          if (gameId) {
            const gRef = doc(db, 'games', gameId);
-           const initialActiveQuestion = { 
-             id: toTrigger.question.id, 
-             endTime: gameState.settings?.timerEnabled ? Date.now() + gameState.settings.timerDuration * 1000 : null,
-             buzzerEnabled: !(gameState.settings?.buzzerDelay && gameState.settings.buzzerDelay > 0)
-           };
            await updateDoc(gRef, {
-             activeQuestion: initialActiveQuestion,
+             activeQuestion: { 
+               id: toTrigger.question.id, 
+               endTime: gameState.settings?.timerEnabled ? Date.now() + gameState.settings.timerDuration * 1000 : null 
+             },
              firstBuzz: null,
              typingFinished: false
            });
-           if (gameState.settings?.buzzerDelay && gameState.settings.buzzerDelay > 0) {
-             setTimeout(async () => {
-               const currentSnap = await getDoc(gRef);
-               if (currentSnap.exists() && currentSnap.data().activeQuestion?.id === toTrigger.question.id) {
-                 await updateDoc(gRef, { 'activeQuestion.buzzerEnabled': true });
-               }
-             }, gameState.settings.buzzerDelay * 1000);
-           }
          }
          
          // Mark the clicked question as answered so it's "consumed" by the random bonus, 
@@ -284,26 +274,14 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
     if (gameId) {
       const gRef = doc(db, 'games', gameId);
-      const initialActiveQuestion = { 
-        id: question.id, 
-        endTime: (gameState.settings?.timerEnabled && !gameState.settings.timerOnBuzzOnly) ? Date.now() + gameState.settings.timerDuration * 1000 : null,
-        buzzerEnabled: !(gameState.settings?.buzzerDelay && gameState.settings.buzzerDelay > 0)
-      };
-
       await updateDoc(gRef, {
-        activeQuestion: initialActiveQuestion,
+        activeQuestion: { 
+          id: question.id, 
+          endTime: (gameState.settings?.timerEnabled && !gameState.settings.timerOnBuzzOnly) ? Date.now() + gameState.settings.timerDuration * 1000 : null 
+        },
         firstBuzz: null,
         typingFinished: false
       });
-
-      if (gameState.settings?.buzzerDelay && gameState.settings.buzzerDelay > 0) {
-        setTimeout(async () => {
-          const currentSnap = await getDoc(gRef);
-          if (currentSnap.exists() && currentSnap.data().activeQuestion?.id === question.id) {
-            await updateDoc(gRef, { 'activeQuestion.buzzerEnabled': true });
-          }
-        }, gameState.settings.buzzerDelay * 1000);
-      }
     }
   };
 

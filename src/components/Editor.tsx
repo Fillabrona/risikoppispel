@@ -851,18 +851,6 @@ Output ONLY valid JSON, no markdown formatting.
                         />
                       </div>
                     )}
-
-                    <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
-                      <div>
-                        <h3 className="font-bold text-white text-lg">Buzzer Enable Delay</h3>
-                        <p className="text-sm text-slate-400 mt-1">Seconds to wait after question appears before allowing buzzers.</p>
-                      </div>
-                      <input type="number" 
-                        value={gameState.settings?.buzzerDelay || 0} 
-                        onChange={e => hooks.updateSettings({ buzzerDelay: parseInt(e.target.value) || 0 })}
-                        className="w-24 px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none text-white text-center font-bold text-xl drop-shadow-md" 
-                      />
-                    </div>
                   </div>
                 </div>
 
