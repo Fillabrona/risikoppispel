@@ -1,5 +1,5 @@
 import { Category, GameState, presetThemes, Theme } from '../types';
-import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users, Palette, CheckCircle2, Copy, Download, Upload, Wand2, Loader2, ChevronDown, Volume2, VolumeX, AlertCircle, X, QrCode, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Settings, Play, Plus, Trash2, Edit2, RotateCcw, LayoutDashboard, Users, Palette, CheckCircle2, Copy, Download, Upload, Wand2, Loader2, ChevronDown, Volume2, VolumeX, AlertCircle, X, QrCode, HelpCircle } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { motion, AnimatePresence } from 'motion/react';
@@ -148,7 +148,6 @@ export default function Editor({ gameState, hooks, onPlay, isMuted, setIsMuted, 
   });
   const [modal, setModal] = useState<{ title: string; message: string } | null>(null);
   const [showQR, setShowQR] = useState(false);
-  const [previewSlide, setPreviewSlide] = useState(0); // 0: Board, 1: Question, 2: Answer
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { playSound } = useSound(isMuted);
   
@@ -1105,93 +1104,22 @@ Output ONLY valid JSON, no markdown formatting.
                     <p className="text-sm text-slate-400 mt-2">Fine-tune the individual colors of your board. Supports HEX, RGB/RGBA, and CSS gradients.</p>
                   </div>
                   
-                  <div className="relative group/preview">
-                    <div className="w-full aspect-video max-h-[350px] rounded-3xl overflow-hidden border-4 border-slate-800 shadow-xl relative mb-4">
-                      <AnimatePresence mode="wait">
-                        <motion.div 
-                          key={previewSlide}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          transition={{ duration: 0.3 }}
-                          className="absolute inset-0" 
-                          style={{ background: gameState.theme.activeBg && previewSlide > 0 ? gameState.theme.activeBg : gameState.theme.boardBg }}
-                        >
-                          {previewSlide === 0 && (
-                            <div className="absolute inset-x-4 inset-y-6 flex flex-col gap-2">
-                              <div className="flex gap-2">
-                                {[1, 2, 3].map(col => (
-                                  <div key={col} className="flex-1 h-8 rounded-lg flex items-center justify-center font-black text-[8px] uppercase tracking-wider" style={{ background: gameState.theme.headerBg, color: gameState.theme.headerText }}>
-                                    CATEGORY {col}
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="flex-1 flex gap-2">
-                                {[1, 2, 3].map(col => (
-                                  <div key={col} className="flex-1 flex flex-col gap-2">
-                                    {[200, 400, 600].map(pt => (
-                                      <div key={pt} className="flex-1 rounded-lg flex items-center justify-center font-black text-sm border border-white/5" style={{ background: pt === 200 && col === 2 ? gameState.theme.cellBgAnswered : gameState.theme.cellBg, color: pt === 200 && col === 2 ? 'transparent' : gameState.theme.cellText }}>
-                                        ${pt}
-                                      </div>
-                                    ))}
-                                  </div>
-                                ))}
-                              </div>
+                  <div className="w-full aspect-video max-h-[300px] rounded-3xl overflow-hidden border-4 border-slate-800 shadow-xl relative mb-8">
+                    <div className="absolute inset-0" style={{ background: gameState.theme.boardBg }} />
+                    <div className="absolute inset-x-6 inset-y-8 flex gap-3">
+                      {[1, 2, 3].map(col => (
+                        <div key={col} className="flex-1 flex flex-col gap-3">
+                            <div className="h-10 rounded-lg flex items-center justify-center font-black text-[10px] uppercase tracking-wider shadow-sm drop-shadow-md" style={{ background: gameState.theme.headerBg, color: gameState.theme.headerText }}>
+                              CATEGORY {col}
                             </div>
-                          )}
-
-                          {previewSlide === 1 && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center" style={{ color: gameState.theme.activeText }}>
-                              <div className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4 opacity-50">Question Screen</div>
-                              <h3 className="text-xl sm:text-2xl font-black leading-tight max-w-md" style={{ color: gameState.theme.questionText }}>
-                                This is how your question text will look on the board.
-                              </h3>
-                              {gameState.settings?.timerEnabled && (
-                                <div className="mt-8 px-4 py-1.5 bg-black/40 border border-white/10 rounded-xl font-mono font-black text-emerald-400">
-                                  15
+                            {[200, 400, 600].map(pt => (
+                              <div key={pt} className="flex-1 rounded-xl flex items-center justify-center font-black text-lg drop-shadow-md shadow-sm border border-white/10 overflow-hidden relative" style={{ background: pt === 200 && col === 2 ? gameState.theme.cellBgAnswered : gameState.theme.cellBg, color: pt === 200 && col === 2 ? 'transparent' : gameState.theme.cellText }}>
+                                <div className="absolute inset-0 flex items-center justify-center" style={{ color: pt === 600 && col === 1 ? gameState.theme.questionText : 'inherit' }}>
+                                   {pt === 600 && col === 1 ? 'Q?' : `$${pt}`}
                                 </div>
-                              )}
-                            </div>
-                          )}
-
-                          {previewSlide === 2 && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                              <div className="text-[10px] font-bold uppercase tracking-[0.2em] mb-4 opacity-50" style={{ color: gameState.theme.activeText }}>Answer Screen</div>
-                              <h3 className="text-xl sm:text-2xl font-black leading-tight max-w-md" style={{ color: gameState.theme.answerText }}>
-                                And this is the color of the revealed answer.
-                              </h3>
-                              <div className="mt-8 grid grid-cols-2 gap-2 w-full max-w-xs">
-                                <div className="h-10 bg-emerald-500 rounded-xl flex items-center justify-center font-bold text-emerald-950 text-[10px]">JUDGE +</div>
-                                <div className="h-10 bg-black/40 border border-white/10 rounded-xl flex items-center justify-center font-bold text-white text-[10px]">PENALIZE -</div>
                               </div>
-                            </div>
-                          )}
-                        </motion.div>
-                      </AnimatePresence>
-
-                      {/* Navigation Arrows */}
-                      <button 
-                        onClick={() => setPreviewSlide(s => (s === 0 ? 2 : s - 1))}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-all group-hover:scale-110 active:scale-90"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                      <button 
-                        onClick={() => setPreviewSlide(s => (s === 2 ? 0 : s + 1))}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-all group-hover:scale-110 active:scale-90"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    {/* Indicators */}
-                    <div className="flex justify-center gap-2 pb-4">
-                      {[0, 1, 2].map((idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setPreviewSlide(idx)}
-                          className={`w-2 h-2 rounded-full transition-all ${previewSlide === idx ? 'bg-indigo-500 w-6' : 'bg-slate-700 hover:bg-slate-600'}`}
-                        />
+                            ))}
+                        </div>
                       ))}
                     </div>
                   </div>

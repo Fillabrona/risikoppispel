@@ -517,29 +517,30 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       <AnimatePresence>
         {hostParams?.firstBuzz && activeQuestion && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ duration: 0.3, type: 'spring' }}
-            className="fixed top-32 left-1/2 -translate-x-1/2 z-[80] bg-emerald-500 rounded-[2rem] p-4 pl-6 shadow-[0_30px_60px_rgba(0,0,0,0.5)] flex items-center gap-8 border-4 border-white/20 w-fit max-w-[95vw]"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-12 left-1/2 -translate-x-1/2 z-[80] bg-emerald-500 rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center gap-6 border-4 border-white/20 w-fit min-w-[400px]"
           >
-            <div className="flex items-center gap-4 shrink-0 pr-4 border-r border-white/10">
-              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-emerald-900/20 border-2 border-white/30 shrink-0">
+            <div className="flex items-center gap-6 w-full justify-center">
+              <div className="w-24 h-24 rounded-2xl overflow-hidden bg-emerald-900/20 border-2 border-white/30 shrink-0">
                 <img 
                   src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
                   alt="" 
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="flex flex-col text-white leading-tight">
-                <span className="text-emerald-100 font-bold tracking-widest uppercase text-[10px] mb-0.5">Player Buzz</span>
-                <span className="text-2xl font-black tracking-tight truncate max-w-[150px]">{hostParams.firstBuzz.name}</span>
+              <div className="flex flex-col text-white">
+                <span className="text-emerald-100 font-bold tracking-widest uppercase text-sm mb-1">First to Buzz</span>
+                <span className="text-4xl font-black tracking-tight">{hostParams.firstBuzz.name}</span>
               </div>
             </div>
             
-            <div className="flex gap-2 bg-emerald-900/10 p-1.5 rounded-2xl shrink-0">
+            <div className="flex gap-2 w-full justify-center mt-2 bg-emerald-900/10 p-2 rounded-2xl">
                <button
                  onClick={() => {
+                   // Ensure player exists in local state
                    if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
                      hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
                    }
@@ -548,7 +549,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                      handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                    }, 100);
                  }}
-                 className="bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-black py-3 px-6 rounded-xl shadow-lg transition-all text-xs uppercase tracking-wider text-center"
+                 className="flex-1 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all text-sm uppercase tracking-wider text-center"
                >
                  Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
                </button>
@@ -562,9 +563,9 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                      handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                    }, 100);
                  }}
-                 className="bg-rose-700 hover:bg-rose-600 active:scale-95 text-white font-bold py-3 px-5 rounded-xl transition-all text-xs uppercase tracking-wider"
+                 className="bg-rose-700 hover:bg-rose-600 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider"
                >
-                 Wrong
+                 Incorr.
                </button>
                <button
                  onClick={() => {
@@ -577,7 +578,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                      setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
                    }
                  }}
-                 className="bg-black/30 hover:bg-black/50 active:scale-95 text-white font-bold py-3 px-5 rounded-xl transition-all text-xs uppercase tracking-wider"
+                 className="bg-black/30 hover:bg-black/50 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider"
                >
                  Skip
                </button>
