@@ -961,7 +961,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                       await setDoc(doc(db, 'games', gameId), { status: 'editor', players: gameState.players.map(p => ({ ...p, score: 0 })) }, { merge: true });
                       for (const player of gameState.players) {
                         const pRef = doc(db, 'games', gameId, 'participants', player.id);
-                        setDoc(pRef, { score: 0 }, { merge: true }).catch(() => {});
+                        setDoc(pRef, { score: 0, resetAt: Date.now() }, { merge: true }).catch(() => {});
                       }
                     }
                   }} 
@@ -977,7 +977,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                       await setDoc(doc(db, 'games', gameId), { status: 'editor', players: gameState.players.map(p => ({ ...p, score: 0 })) }, { merge: true });
                       for (const player of gameState.players) {
                         const pRef = doc(db, 'games', gameId, 'participants', player.id);
-                        setDoc(pRef, { score: 0 }, { merge: true }).catch(() => {});
+                        setDoc(pRef, { score: 0, resetAt: Date.now() }, { merge: true }).catch(() => {});
                       }
                     }
                     onEdit();
