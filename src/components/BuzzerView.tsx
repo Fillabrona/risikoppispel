@@ -637,7 +637,7 @@ export default function BuzzerView() {
   const iWonBuzz = gameStatus?.firstBuzz?.participantId === participantId;
   const someoneElseWon = gameStatus?.firstBuzz && gameStatus.firstBuzz.participantId !== participantId;
   const isPendingBuzz = localHasClicked && !gameStatus?.firstBuzz;
-  const isManuallySkipped = gameStatus?.manuallySkipped;
+  const isSkipped = isAnswerShown && !gameStatus?.firstBuzz;
 
   const buzzerColor = getBuzzerColor(participantId);
 
@@ -705,15 +705,15 @@ export default function BuzzerView() {
               ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
               someoneElseWon ? 'bg-slate-800 opacity-20 border-transparent saturate-0' : 
               wasTimedOut ? 'bg-rose-900 border-rose-500/50 scale-95' :
-              isManuallySkipped ? 'bg-slate-800 opacity-40 border-transparent saturate-0 scale-95' :
+              isSkipped ? 'bg-slate-800 opacity-40 border-transparent saturate-0 scale-95' :
               isPendingBuzz ? 'bg-slate-700 opacity-50 border-white/5 saturate-0 scale-95' :
               (!gameStatus?.activeQuestion) ? 'brightness-100 scale-100 opacity-80' :
               canBuzz ? 'brightness-100 scale-100' : 
               'bg-slate-800 opacity-20 border-transparent saturate-0 scale-95'}`}
           >
             <div className="flex flex-col items-center justify-center">
-              <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${(!canBuzz && !iWonBuzz && !isPendingBuzz && !gameStatus?.manuallySkipped && gameStatus?.activeQuestion) ? 'opacity-40' : 'opacity-100'}`}>
-                {!gameStatus?.activeQuestion ? 'WAITING...' : iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : wasTimedOut ? 'TIMED OUT (BLOCKED)' : wasWrong ? 'WRONG!' : gameStatus?.manuallySkipped ? 'SKIPPED!' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : 'WAIT'}
+              <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${(!canBuzz && !iWonBuzz && !isPendingBuzz && !isSkipped && gameStatus?.activeQuestion) ? 'opacity-40' : 'opacity-100'}`}>
+                {!gameStatus?.activeQuestion ? 'WAITING...' : iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : wasTimedOut ? 'TIMED OUT (BLOCKED)' : isSkipped ? 'SKIPPED!' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : 'WAIT'}
               </span>
             </div>
           </button>
