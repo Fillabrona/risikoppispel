@@ -535,7 +535,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
               stiffness: 200,
               layout: { type: 'spring', damping: 25, stiffness: 200 }
             }}
-            className="fixed top-[88px] left-1/2 z-[80] flex flex-row items-center gap-4 filter drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+            className="fixed top-8 left-1/2 z-[80] flex flex-row items-center gap-4"
           >
             <AnimatePresence mode="popLayout">
               {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && (
@@ -562,7 +562,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                   initial={{ opacity: 0, scale: 0.8, x: 20 }}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.8, x: 20 }}
-                  className="bg-emerald-600 rounded-[2rem] p-3 sm:p-4 flex flex-row items-center gap-4 sm:gap-8 border-4 border-white/20 w-fit max-w-[95vw] shadow-2xl backdrop-blur-md"
+                  className="bg-emerald-600 rounded-[2rem] p-3 sm:p-4 flex flex-row items-center gap-4 sm:gap-8 border-4 border-white/20 w-fit max-w-[95vw] backdrop-blur-md"
                 >
                   <div className="flex items-center gap-3 sm:gap-4 shrink-0 pl-1 sm:pl-2">
                     <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-black/20 border-2 border-white/20">
@@ -605,7 +605,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                        }}
                        className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-2.5 px-3 sm:px-6 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider shadow-lg"
                      >
-                       Incorr.
+                       WRONG
                      </button>
                      <button
                        onClick={() => {
