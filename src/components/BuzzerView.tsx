@@ -28,7 +28,6 @@ export default function BuzzerView() {
   const [gameStatus, setGameStatus] = useState<any>(null);
   const [myScore, setMyScore] = useState<number | null>(null);
   const [scoreNotification, setScoreNotification] = useState<{ delta: number, type: 'plus' | 'minus' } | null>(null);
-  const [localVictoryData, setLocalVictoryData] = useState<any[] | null>(null);
   
   const [recording, setRecording] = useState(false);
   const [voiceUri, setVoiceUri] = useState<string>('');
@@ -156,33 +155,9 @@ export default function BuzzerView() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         
-        // Sound logic: play sound if we JUST successfully buzzed
-        const newFirstBuzz = data.buzzes?.[0];
-        const oldFirstBuzz = gameStatus?.buzzes?.[0];
-        
-        // Reset localHasClicked if question is cleared or if someone else won
-        if (!data.activeQuestion || (newFirstBuzz && newFirstBuzz.participantId !== participantId)) {
+        // Reset localHasClicked if question is cleared, or if someone else buzzed
+        if (!data.activeQuestion || (data.firstBuzz && data.firstBuzz.participantId !== participantId)) {
           setLocalHasClicked(false);
-        }
-
-        if (newFirstBuzz?.participantId === participantId && oldFirstBuzz?.participantId !== participantId) {
-          if (newFirstBuzz.voiceUri) {
-            const audio = new Audio(newFirstBuzz.voiceUri);
-            audio.play().catch(() => playSound('reveal'));
-          } else {
-            playSound('reveal');
-          }
-        }
-        
-        if (data.status === 'finished' && data.finalPlayers) {
-          setLocalVictoryData(data.finalPlayers);
-          // Auto-delete participant data to clean up room state as requested
-          if (participantId) {
-             deleteDoc(doc(db, 'games', gameId, 'participants', participantId)).catch(() => {});
-          }
-        } else if (data.status === 'editor' || data.status === 'playing') {
-          // Reset victory if host resets
-          setLocalVictoryData(null);
         }
 
         setGameStatus(data);
@@ -343,8 +318,7 @@ export default function BuzzerView() {
   };
 
   const buzzOut = async () => {
-    const firstBuzz = gameStatus?.buzzes?.[0];
-    if (!gameId || !gameStatus?.activeQuestion || firstBuzz || isSendingBuzz || localHasClicked) return;
+    if (!gameId || !gameStatus?.activeQuestion || gameStatus.firstBuzz || isSendingBuzz || localHasClicked) return;
     
     // Safety check: only buzz if typing is finished
     if (!gameStatus.typingFinished) return;
@@ -364,25 +338,45 @@ export default function BuzzerView() {
     setLocalHasClicked(true);
     
     const avatarName = localStorage.getItem('participantName') || name;
+    
+    // Play buzzing local feedback instantly, even before server responds. 
+    // This gives them instant satisfaction that they clicked.
+    if (voiceUri) {
+      const audio = new Audio(voiceUri);
+      audio.play().catch(() => playSound('reveal'));
+    } else {
+      playSound('reveal');
+    }
+
     const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(avatarName)}&backgroundColor=transparent`;
     
-    // Play a neutral local feedback instantly. Do NOT play voice yet. Voice plays on win.
-    playSound('select');
-
     try {
-      const { arrayUnion } = await import('firebase/firestore');
-      const gRef = doc(db, 'games', gameId);
-      await updateDoc(gRef, {
-        buzzes: arrayUnion({
-          participantId,
-          name: avatarName,
-          avatarUrl,
-          voiceUri,
-          clientTime: Date.now()
-        })
+      await runTransaction(db, async (transaction) => {
+        const gRef = doc(db, 'games', gameId);
+        const gSnap = await transaction.get(gRef);
+        
+        if (!gSnap.exists()) throw new Error("Game does not exist");
+        const data = gSnap.data();
+        
+        if (data.firstBuzz) {
+          // Someone already buzzed
+          setLocalHasClicked(false);
+          return;
+        }
+
+        transaction.update(gRef, {
+          firstBuzz: {
+            participantId,
+            name: avatarName,
+            avatarUrl,
+            voiceUri,
+            time: new Date().toISOString(),
+            serverTime: new Date().toISOString(), // We could use serverTimestamp, but ISOString sorts well enough for client tracking
+          }
+        });
       });
     } catch (e) {
-      console.error("Buzz failed:", e);
+      console.error("Buzz transaction failed:", e);
       setLocalHasClicked(false);
     } finally {
       setIsSendingBuzz(false);
@@ -457,58 +451,7 @@ export default function BuzzerView() {
     );
   }
 
-  if (localVictoryData) {
-    const sorted = [...localVictoryData].sort((a, b) => b.score - a.score);
-    const isWinner = sorted[0]?.id === participantId;
-    const myRank = sorted.findIndex(p => p.id === participantId) + 1;
-
-    const rankString = (n: number) => {
-      if (n === 1) return '1st';
-      if (n === 2) return '2nd';
-      if (n === 3) return '3rd';
-      return n + 'th';
-    };
-
-    return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white text-center relative overflow-hidden">
-        {isWinner && (
-           <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-             <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[200vw] h-[200vw] bg-yellow-500/10 blur-3xl rounded-full" />
-           </div>
-        )}
-        <div className="z-10 bg-slate-800/80 p-8 rounded-[2rem] border border-white/10 shadow-2xl backdrop-blur-md max-w-sm w-full font-display">
-           <Trophy className={`w-20 h-20 mx-auto mb-6 ${isWinner ? 'text-yellow-400 fill-yellow-400 glow drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]' : 'text-slate-400'}`} />
-           <h1 className="text-4xl font-black uppercase tracking-widest mb-2 text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-yellow-600">
-             {isWinner ? "You Won!" : "Game Over"}
-           </h1>
-           <p className="text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">
-             {myRank > 0 && !isWinner ? rankString(myRank) + " Place" : "Spectacular Performance"}
-           </p>
-
-           <div className="space-y-4">
-             {sorted.slice(0, 3).map((p, idx) => (
-               <div key={p.id} className={`flex items-center justify-between p-4 rounded-xl border ${p.id === participantId ? 'bg-white/10 border-white/20' : 'bg-black/20 border-white/5'}`}>
-                 <div className="flex items-center gap-3">
-                   <div className="w-8 h-8 rounded-full bg-slate-700 font-black flex items-center justify-center text-xs">
-                     {idx === 0 ? '1' : idx === 1 ? '2' : '3'}
-                   </div>
-                   <span className="font-bold line-clamp-1 text-left">{p.name}</span>
-                 </div>
-                 <span className="font-black tabular-nums">{p.score}</span>
-               </div>
-             ))}
-           </div>
-           
-           <div className="mt-8 text-xs text-white/30 tracking-widest uppercase font-bold">
-              Waiting for Host
-           </div>
-        </div>
-      </div>
-    );
-  }
-
-  const firstBuzz = gameStatus?.buzzes?.[0];
-  const isBuzzerActive = gameStatus?.activeQuestion && !firstBuzz && gameStatus?.typingFinished;
+  const isBuzzerActive = gameStatus?.activeQuestion && !gameStatus?.firstBuzz && gameStatus?.typingFinished;
   // If timer exceeded, they shouldn't be able to buzz
   let expired = false;
   if (isBuzzerActive && gameStatus.activeQuestion.endTime) {
@@ -519,8 +462,8 @@ export default function BuzzerView() {
   const isAnswerShown = gameStatus?.showAnswer;
   const canBuzz = isBuzzerActive && !expired && !wasWrong && !isAnswerShown && !localHasClicked;
   
-  const iWonBuzz = firstBuzz?.participantId === participantId || localHasClicked;
-  const someoneElseWon = firstBuzz && firstBuzz.participantId !== participantId;
+  const iWonBuzz = gameStatus?.firstBuzz?.participantId === participantId || localHasClicked;
+  const someoneElseWon = gameStatus?.firstBuzz && gameStatus.firstBuzz.participantId !== participantId;
 
   const buzzerColor = getBuzzerColor(participantId);
 
@@ -617,7 +560,7 @@ export default function BuzzerView() {
             >
               <div className="flex flex-col items-center justify-center">
                 <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${!canBuzz && !iWonBuzz ? 'opacity-40' : 'opacity-100'}`}>
-                  {iWonBuzz ? (localHasClicked && firstBuzz?.participantId !== participantId ? 'BUZZED!' : 'YOUR TURN') : someoneElseWon ? 'TOO SLOW' : canBuzz ? 'BUZZ' : 'WAIT'}
+                  {iWonBuzz ? (localHasClicked && gameStatus?.firstBuzz?.participantId !== participantId ? 'BUZZED!' : 'YOUR TURN') : someoneElseWon ? 'TOO SLOW' : canBuzz ? 'BUZZ' : 'WAIT'}
                 </span>
               </div>
             </button>
