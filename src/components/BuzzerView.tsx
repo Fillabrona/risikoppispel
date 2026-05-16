@@ -116,7 +116,7 @@ export default function BuzzerView() {
         const data = snap.data();
         if (data.score !== undefined) {
           if (lastNotifiedScore.current === null) {
-            lastNotifiedScore.current = data.score;
+            lastNotifiedScore.current = 0;
           }
 
           if (data.score !== lastNotifiedScore.current && joined) {
@@ -650,14 +650,13 @@ export default function BuzzerView() {
         {scoreNotification && (
           <motion.div
             key={scoreNotification.id}
-            initial={{ opacity: 0, y: 100, scale: 0.7 }}
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.7 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
             transition={{ 
               type: 'spring', 
-              damping: 25, 
-              stiffness: 250,
-              mass: 0.6
+              damping: 20, 
+              stiffness: 300
             }}
             className="fixed inset-x-4 bottom-12 z-[110] flex items-center justify-center pointer-events-none"
           >
