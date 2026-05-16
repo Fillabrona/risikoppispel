@@ -42,6 +42,7 @@ export default function BuzzerView() {
   const [cachedLeaderboard, setCachedLeaderboard] = useState<any[] | null>(null);
   const [kickReason, setKickReason] = useState<string | null>(null);
   const { playSound } = useSound(false);
+  const isManualExit = useRef(false);
   const wakeLockRef = useRef<any>(null);
 
   // Wake Lock Implementation
@@ -150,7 +151,7 @@ export default function BuzzerView() {
         }
       } else {
          // If host removed us, we should drop back to join screen
-         if (joined) {
+         if (joined && !isManualExit.current) {
            setKickReason("You were removed by the host.");
          }
          setJoined(false);
@@ -525,6 +526,7 @@ export default function BuzzerView() {
         </div>
         <button 
           onClick={async () => {
+            isManualExit.current = true;
             setJoined(false);
             setCachedLeaderboard(null);
             if (gameId && participantId) {
@@ -609,7 +611,7 @@ export default function BuzzerView() {
             <button 
               onClick={() => handleJoin()}
               disabled={!name.trim() || isJoining}
-              className="w-full bg-cyan-500 text-slate-900 font-black py-4 rounded-2xl disabled:opacity-50 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:bg-cyan-400 hover:shadow-cyan-500/30"
+              className="w-full bg-cyan-500 text-slate-900 font-black py-4 rounded-2xl disabled:opacity-50 disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-sm hover:bg-cyan-400"
             >
               {(isJoining || (!isAuth && name.trim())) && <Loader2 className="w-5 h-5 animate-spin" />}
               {isJoining ? 'Joining...' : (isAuth ? (localStorage.getItem('participantName') ? `Enter Lobby as ${localStorage.getItem('participantName')}` : 'Enter Lobby') : (name.trim() ? 'Connecting...' : 'Enter Name to Start'))}
@@ -645,9 +647,9 @@ export default function BuzzerView() {
         {scoreNotification && (
           <motion.div
             key={scoreNotification.id}
-            initial={{ opacity: 0, y: 80, scale: 0.7 }}
+            initial={{ opacity: 0, y: 100, scale: 0.7 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 60, scale: 0.9, transition: { duration: 0.15 } }}
+            exit={{ opacity: 0, y: 100, scale: 0.7 }}
             transition={{ 
               type: 'spring', 
               damping: 25, 
