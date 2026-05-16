@@ -251,7 +251,8 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                endTime: gameState.settings?.timerEnabled ? Date.now() + gameState.settings.timerDuration * 1000 : null 
              },
              firstBuzz: null,
-             typingFinished: false
+             typingFinished: false,
+             manuallySkipped: false
            });
          }
          
@@ -280,7 +281,8 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           endTime: (gameState.settings?.timerEnabled && !gameState.settings.timerOnBuzzOnly) ? Date.now() + gameState.settings.timerDuration * 1000 : null 
         },
         firstBuzz: null,
-        typingFinished: false
+        typingFinished: false,
+        manuallySkipped: false
       });
     }
   };
@@ -295,7 +297,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
     if (gameId) {
       const gRef = doc(db, 'games', gameId);
-      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [], timedOutPlayers: [], typingFinished: false }, { merge: true });
+      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [], timedOutPlayers: [], typingFinished: false, manuallySkipped: false }, { merge: true });
     }
   }
 
@@ -610,7 +612,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              const pId = hostParams.firstBuzz.participantId;
                              const wrong = hostParams.wrongBuzzes || [];
                              if (!wrong.includes(pId)) wrong.push(pId);
-                             setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
+                             setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong, manuallySkipped: true }, { merge: true });
                            }
                          }}
                          className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-2 px-3 sm:px-5 rounded-[1rem] transition-all text-[10px] sm:text-xs uppercase tracking-wider shadow-none"
