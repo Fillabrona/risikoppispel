@@ -46,7 +46,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
       </button>
       
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 py-1 bg-slate-800 border border-slate-700 rounded-xl shadow-xl backdrop-blur-xl">
+        <div className="absolute z-50 w-full mt-2 py-0 bg-slate-800 border border-slate-700 rounded-xl shadow-xl backdrop-blur-xl overflow-hidden">
           {options.map((option) => (
             <button
               key={option.value}
@@ -55,7 +55,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+              className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                 value === option.value 
                   ? 'bg-purple-500/20 text-purple-300 font-bold' 
                   : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
@@ -394,14 +394,23 @@ Output ONLY valid JSON, no markdown formatting.
     hooks.resetBoard();
     if (gameId) {
       try {
-        await deleteDoc(doc(db, 'games', gameId));
-        await setDoc(doc(db, 'games', gameId), { status: 'editor', activeQuestion: null, firstBuzz: null });
+        await setDoc(doc(db, 'games', gameId), { 
+          status: 'editor', 
+          activeQuestion: null, 
+          firstBuzz: null,
+          isResetting: true 
+        }, { merge: true });
         
         // Also reset all participants scores to 0 in firestore
         for (const player of gameState.players) {
            const pRef = doc(db, 'games', gameId, 'participants', player.id);
-           setDoc(pRef, { score: 0 }, { merge: true });
+           setDoc(pRef, { score: 0, isReset: true }, { merge: true });
         }
+
+        // Remove the flag shortly
+        setTimeout(async () => {
+          await setDoc(doc(db, 'games', gameId), { isResetting: false }, { merge: true });
+        }, 2000);
       } catch (e) {
         console.error("Failed to reset Firestore room:", e);
       }

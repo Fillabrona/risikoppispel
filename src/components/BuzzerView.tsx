@@ -122,18 +122,18 @@ export default function BuzzerView() {
             const diff = data.score - lastNotifiedScore.current;
             lastNotifiedScore.current = data.score;
             
-            // Only trigger if difference is non-zero
-            if (diff !== 0) {
+            // Only trigger if difference is non-zero AND NOT A RESET
+            if (diff !== 0 && !data.isReset && !gameStatus?.isResetting) {
               setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus' });
               if (diff > 0) {
                 playSound('award');
                 confetti({
                   particleCount: 80,
-                  spread: 60,
-                  origin: { y: 0.8, x: 0.5 },
+                  spread: 70,
+                  origin: { y: 0.6, x: 0.5 },
                   colors: [getBuzzerColor(participantId), '#ffffff'],
-                  ticks: 200,
-                  gravity: 1.2,
+                  ticks: 250,
+                  gravity: 1,
                   scalar: 1.2
                 });
               } else {
