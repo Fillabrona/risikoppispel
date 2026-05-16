@@ -732,6 +732,7 @@ Output ONLY valid JSON, no markdown formatting.
                                       onChange={(val) => hooks.updateQuestion(category.id, q.id, { bonusTrigger: val })}
                                       options={[
                                         { value: 'row_clear', label: 'When a row clears' },
+                                        { value: 'column_clear', label: 'When a column clears' },
                                         { value: 'all_clear', label: 'Final round (All cleared)' },
                                         { value: 'random', label: 'Random (Manual Card)' }
                                       ]}
@@ -795,6 +796,32 @@ Output ONLY valid JSON, no markdown formatting.
                         </div>
                       </label>
                     </div>
+
+                    {gameState.settings?.timerEnabled && (
+                      <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
+                        <div>
+                          <h3 className="font-bold text-white text-lg">Timer Only on Buzz</h3>
+                          <p className="text-sm text-slate-400 mt-1">Timer starts only after a player buzzes in.</p>
+                        </div>
+                        <label className="relative flex items-center p-2 cursor-pointer group">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={gameState.settings?.timerOnBuzzOnly || false} 
+                            onChange={(e) => hooks.updateSettings({ timerOnBuzzOnly: e.target.checked })} 
+                          />
+                          <div className="w-8 h-8 rounded border-2 border-slate-700 bg-slate-900 peer-checked:bg-indigo-500 peer-checked:border-indigo-500 transition-all flex items-center justify-center shadow-inner group-hover:border-indigo-400">
+                            <svg 
+                              className={`w-5 h-5 text-white pointer-events-none transition-transform ${gameState.settings?.timerOnBuzzOnly ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} 
+                              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+
                     {gameState.settings?.timerEnabled && (
                       <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
                         <div>
@@ -886,6 +913,7 @@ Output ONLY valid JSON, no markdown formatting.
                             onChange={setAiBonusTrigger}
                             options={[
                               { value: 'row_clear', label: 'When a row clears' },
+                              { value: 'column_clear', label: 'When a column clears' },
                               { value: 'all_clear', label: 'Final round (All cleared)' },
                               { value: 'random', label: 'Random (Manual Card)' }
                             ]}
@@ -1071,11 +1099,31 @@ Output ONLY valid JSON, no markdown formatting.
                   <div className="mb-6">
                     <h2 className="text-xl font-bold flex items-center gap-3">
                       <Settings className="w-6 h-6 text-slate-400" /> 
-                      Advanced Customization
+                      Advanced Customization & Preview
                     </h2>
                     <p className="text-sm text-slate-400 mt-2">Fine-tune the individual colors of your board. Supports HEX, RGB/RGBA, and CSS gradients.</p>
                   </div>
                   
+                  <div className="w-full aspect-video max-h-[300px] rounded-3xl overflow-hidden border-4 border-slate-800 shadow-xl relative mb-8">
+                    <div className="absolute inset-0" style={{ background: gameState.theme.boardBg }} />
+                    <div className="absolute inset-x-6 inset-y-8 flex gap-3">
+                      {[1, 2, 3].map(col => (
+                        <div key={col} className="flex-1 flex flex-col gap-3">
+                            <div className="h-10 rounded-lg flex items-center justify-center font-black text-[10px] uppercase tracking-wider shadow-sm drop-shadow-md" style={{ background: gameState.theme.headerBg, color: gameState.theme.headerText }}>
+                              CATEGORY {col}
+                            </div>
+                            {[200, 400, 600].map(pt => (
+                              <div key={pt} className="flex-1 rounded-xl flex items-center justify-center font-black text-lg drop-shadow-md shadow-sm border border-white/10 overflow-hidden relative" style={{ background: pt === 200 && col === 2 ? gameState.theme.cellBgAnswered : gameState.theme.cellBg, color: pt === 200 && col === 2 ? 'transparent' : gameState.theme.cellText }}>
+                                <div className="absolute inset-0 flex items-center justify-center" style={{ color: pt === 600 && col === 1 ? gameState.theme.questionText : 'inherit' }}>
+                                   {pt === 600 && col === 1 ? 'Q?' : `$${pt}`}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
                     {(Object.keys(gameState.theme) as Array<keyof Theme>).filter(k => k !== 'presetName').map((key) => {
                       const val = String((gameState.theme as any)[key] || '');

@@ -198,15 +198,108 @@ export default function BuzzerView() {
         if (e.data.size > 0) audioChunks.current.push(e.data);
       };
       
-      mediaRecorder.current.onstop = () => {
+      mediaRecorder.current.onstop = async () => {
         const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            setVoiceUri(reader.result);
+        try {
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          
+          const channelData = audioBuffer.getChannelData(0);
+          let startOffset = 0;
+          let endOffset = channelData.length;
+          
+          // Find first non-silent sample
+          for (let i = 0; i < channelData.length; i++) {
+            if (Math.abs(channelData[i]) > 0.05) {
+              startOffset = i;
+              break;
+            }
           }
-        };
+          
+          // Pad start softly
+          startOffset = Math.max(0, startOffset - Math.floor(audioContext.sampleRate * 0.05));
+          
+          for (let i = channelData.length - 1; i >= 0; i--) {
+            if (Math.abs(channelData[i]) > 0.05) {
+              endOffset = i + 1;
+              break;
+            }
+          }
+          
+          endOffset = Math.min(channelData.length, endOffset + Math.floor(audioContext.sampleRate * 0.05));
+          
+          const trimmedLength = endOffset - startOffset;
+          if (trimmedLength > 0 && startOffset < endOffset) {
+            const trimmedBuffer = audioContext.createBuffer(
+              audioBuffer.numberOfChannels,
+              trimmedLength,
+              audioBuffer.sampleRate
+            );
+            
+            for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
+              trimmedBuffer.copyToChannel(audioBuffer.getChannelData(i).slice(startOffset, endOffset), i);
+            }
+            
+            const numOfChan = trimmedBuffer.numberOfChannels;
+            const length = trimmedBuffer.length * numOfChan * 2 + 44;
+            const buffer = new ArrayBuffer(length);
+            const view = new DataView(buffer);
+            
+            const writeString = (view: DataView, offset: number, string: string) => {
+              for (let i = 0; i < string.length; i++){
+                view.setUint8(offset + i, string.charCodeAt(i));
+              }
+            };
+            
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + trimmedBuffer.length * numOfChan * 2, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numOfChan, true);
+            view.setUint32(24, trimmedBuffer.sampleRate, true);
+            view.setUint32(28, trimmedBuffer.sampleRate * 2 * numOfChan, true);
+            view.setUint16(32, numOfChan * 2, true);
+            view.setUint16(34, 16, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, trimmedBuffer.length * numOfChan * 2, true);
+            
+            let offset = 44;
+            for (let i = 0; i < trimmedBuffer.length; i++) {
+              for (let channel = 0; channel < numOfChan; channel++) {
+                let sample = trimmedBuffer.getChannelData(channel)[i];
+                sample = Math.max(-1, Math.min(1, sample));
+                sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                view.setInt16(offset, sample, true);
+                offset += 2;
+              }
+            }
+            
+            const trimmedBlob = new Blob([view], { type: 'audio/wav' });
+            const reader = new FileReader();
+            reader.readAsDataURL(trimmedBlob);
+            reader.onloadend = () => {
+              if (typeof reader.result === 'string') {
+                setVoiceUri(reader.result);
+              }
+            };
+          } else {
+             const reader = new FileReader();
+             reader.readAsDataURL(audioBlob);
+             reader.onloadend = () => {
+               if (typeof reader.result === 'string') setVoiceUri(reader.result);
+             };
+          }
+        } catch (e) {
+           console.error("Audio trim failed:", e);
+           const reader = new FileReader();
+           reader.readAsDataURL(audioBlob);
+           reader.onloadend = () => {
+             if (typeof reader.result === 'string') setVoiceUri(reader.result);
+           };
+        }
         stream.getTracks().forEach(track => track.stop());
       };
       
@@ -520,6 +613,7 @@ export default function BuzzerView() {
   }
   
   const wasWrong = gameStatus?.wrongBuzzes?.includes(participantId);
+  const wasTimedOut = gameStatus?.timedOutPlayers?.includes(participantId);
   const isAnswerShown = gameStatus?.showAnswer;
   const canBuzz = isBuzzerActive && !expired && !wasWrong && !isAnswerShown && !localHasClicked;
   
@@ -556,7 +650,7 @@ export default function BuzzerView() {
                   {scoreNotification.delta}
                 </div>
                 <div className="text-white/80 font-bold uppercase tracking-widest text-xs">
-                  {scoreNotification.type === 'plus' ? 'Keep it up!' : 'Nice try!'}
+                  {scoreNotification.type === 'plus' ? 'Keep it up!' : (wasTimedOut ? 'Too slow!' : 'Nice try!')}
                 </div>
               </div>
               
@@ -603,6 +697,7 @@ export default function BuzzerView() {
             className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
               ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
               someoneElseWon ? 'bg-slate-800 opacity-20 border-transparent saturate-0' : 
+              wasTimedOut ? 'bg-rose-900 border-rose-500/50 scale-95' :
               isSkipped ? 'bg-slate-800 opacity-40 border-transparent saturate-0 scale-95' :
               isPendingBuzz ? 'bg-slate-700 opacity-50 border-white/5 saturate-0 scale-95' :
               (!gameStatus?.activeQuestion) ? 'brightness-100 scale-100 opacity-80' :
@@ -611,7 +706,7 @@ export default function BuzzerView() {
           >
             <div className="flex flex-col items-center justify-center">
               <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${(!canBuzz && !iWonBuzz && !isPendingBuzz && !isSkipped && gameStatus?.activeQuestion) ? 'opacity-40' : 'opacity-100'}`}>
-                {!gameStatus?.activeQuestion ? 'WAITING...' : iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : isSkipped ? 'SKIPPED!' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : 'WAIT'}
+                {!gameStatus?.activeQuestion ? 'WAITING...' : iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : wasTimedOut ? 'TIMED OUT (BLOCKED)' : isSkipped ? 'SKIPPED!' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : 'WAIT'}
               </span>
             </div>
           </button>

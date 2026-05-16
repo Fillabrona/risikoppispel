@@ -112,8 +112,21 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           } else {
             playSound('reveal'); // generic buzzer sound
           }
+
+          // Start timer on buzz if configured
+          if (gameState.settings?.timerOnBuzzOnly && gameState.settings?.timerEnabled) {
+            setTimerValue(gameState.settings.timerDuration);
+            if (!data.activeQuestion?.endTime) {
+              updateDoc(gRef, {
+                'activeQuestion.endTime': Date.now() + (gameState.settings.timerDuration * 1000)
+              });
+            }
+          }
         } else if (!data.firstBuzz) {
           firstBuzzRef.current = null;
+          if (gameState.settings?.timerOnBuzzOnly) {
+            setTimerValue(null);
+          }
         }
       }
     });
@@ -138,7 +151,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     } else if (activeQuestion && displayStage === 'question' && gameState.settings?.timerEnabled && timerValue === 0) {
       // If someone has buzzed but didn't answer, penalize them
       if (hostParams?.firstBuzz) {
-        handleDeductPoints(hostParams.firstBuzz.participantId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+        handleDeductPoints(hostParams.firstBuzz.participantId, activeQuestion.question.bonusPoints || activeQuestion.question.points, true);
       } else {
         playSound('penalize');
         // No one answered, just reveal answer or wait
@@ -207,12 +220,52 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
   const openQuestion = async (catId: string, question: Question) => {
     if (question.isAnswered) return;
+    
+    // Random Bonus Interception (Daily Double Style)
+    const availableRandomBonuses = gameState.categories.flatMap(c => 
+      c.questions.filter(q => q.isBonus && (q.bonusTrigger === 'random' || q.bonusTrigger === undefined) && !triggeredBonusIds.has(q.id))
+      .map(q => ({catId: c.id, question: q}))
+    );
+
+    if (availableRandomBonuses.length > 0 && !question.isBonus) {
+      const totalQuestions = gridCategories.reduce((acc, cat) => acc + cat.questions.length, 0);
+      const answeredQuestions = gridCategories.reduce((acc, cat) => acc + cat.questions.filter(q => q.isAnswered).length, 0);
+      const remainingQuestions = Math.max(1, totalQuestions - answeredQuestions);
+      
+      const chance = availableRandomBonuses.length / remainingQuestions;
+      if (Math.random() <= chance) {
+         const toTrigger = availableRandomBonuses[Math.floor(Math.random() * availableRandomBonuses.length)];
+         setTriggeredBonusIds(prev => new Set(prev).add(toTrigger.question.id));
+         
+         playSound('select');
+         setActiveQuestion({ catId: toTrigger.catId, question: toTrigger.question });
+         setDisplayStage('bonus_intro');
+         
+         if (gameId) {
+           const gRef = doc(db, 'games', gameId);
+           await updateDoc(gRef, {
+             activeQuestion: { 
+               id: toTrigger.question.id, 
+               endTime: gameState.settings?.timerEnabled ? Date.now() + gameState.settings.timerDuration * 1000 : null 
+             },
+             firstBuzz: null,
+             typingFinished: false
+           });
+         }
+         
+         // Mark the clicked question as answered so it's "consumed" by the random bonus, 
+         // acting like a true Daily Double replacement.
+         hooks.setQuestionAnswered(catId, question.id, true);
+         return;
+      }
+    }
+
     playSound('select');
     setActiveQuestion({ catId, question });
     setDisplayStage(question.isBonus ? 'bonus_intro' : 'question');
     
     if (gameState.settings?.timerEnabled) {
-      setTimerValue(gameState.settings.timerDuration);
+      setTimerValue(gameState.settings.timerOnBuzzOnly ? null : gameState.settings.timerDuration);
     } else {
       setTimerValue(null);
     }
@@ -222,7 +275,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       await updateDoc(gRef, {
         activeQuestion: { 
           id: question.id, 
-          endTime: gameState.settings?.timerEnabled ? Date.now() + gameState.settings.timerDuration * 1000 : null 
+          endTime: (gameState.settings?.timerEnabled && !gameState.settings.timerOnBuzzOnly) ? Date.now() + gameState.settings.timerDuration * 1000 : null 
         },
         firstBuzz: null,
         typingFinished: false
@@ -239,7 +292,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
     if (gameId) {
       const gRef = doc(db, 'games', gameId);
-      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [], typingFinished: false }, { merge: true });
+      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [], timedOutPlayers: [], typingFinished: false }, { merge: true });
     }
   }
 
@@ -258,7 +311,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     closeQuestion();
   }
 
-  function handleDeductPoints(playerId: string, points: number) {
+  function handleDeductPoints(playerId: string, points: number, isTimeout: boolean = false) {
     playSound('penalize');
     
     if (gameId) {
@@ -274,7 +327,13 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
          const data = snap.data();
          const wrong = data?.wrongBuzzes || [];
          if (!wrong.includes(playerId)) wrong.push(playerId);
-         setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
+         const timedOut = data?.timedOutPlayers || [];
+         if (isTimeout && !timedOut.includes(playerId)) timedOut.push(playerId);
+         const update: any = { firstBuzz: null, wrongBuzzes: wrong, timedOutPlayers: timedOut };
+         if (gameState.settings?.timerOnBuzzOnly) {
+           update['activeQuestion.endTime'] = null;
+         }
+         setDoc(gRef, update, { merge: true });
        });
     }
   }
@@ -348,6 +407,24 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       return;
     }
 
+    // Column Clear Logic
+    const columnClearBonuses = gameState.categories.flatMap(c => 
+      c.questions.filter(q => q.isBonus && q.bonusTrigger === 'column_clear' && !triggeredBonusIds.has(q.id))
+      .map(q => ({catId: c.id, question: q}))
+    );
+
+    const clearedColumnsCount = gridCategories.filter(cat => cat.questions.length > 0 && cat.questions.every(q => q.isAnswered)).length;
+    const answeredColumnClearCount = gameState.categories.flatMap(c => 
+      c.questions.filter(q => q.isBonus && q.bonusTrigger === 'column_clear' && q.isAnswered)
+    ).length;
+
+    if (clearedColumnsCount > answeredColumnClearCount && columnClearBonuses.length > 0) {
+      const toTrigger = columnClearBonuses[0];
+      setTriggeredBonusIds(prev => new Set(prev).add(toTrigger.question.id));
+      setTriggerCheckQueue(q => [...q, toTrigger]);
+      return;
+    }
+
     // Check all_clear
     const isAllCleared = gridCategories.every(cat => cat.questions.every(q => q.isAnswered));
     if (isAllCleared) {
@@ -375,6 +452,8 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
         '--color-header-text': gameState.theme.headerText,
         '--color-active-bg': gameState.theme.activeBg,
         '--color-active-text': gameState.theme.activeText,
+        '--color-question-text': gameState.theme.questionText,
+        '--color-answer-text': gameState.theme.answerText,
       } as React.CSSProperties}
     >
       {/* Top Bar Navigation */}
@@ -438,25 +517,27 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       <AnimatePresence>
         {hostParams?.firstBuzz && activeQuestion && (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[80] bg-emerald-500 rounded-3xl p-6 shadow-2xl flex items-center gap-6 border-4 border-white/20"
+            className="fixed top-12 left-1/2 -translate-x-1/2 z-[80] bg-emerald-500 rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center gap-6 border-4 border-white/20 w-fit min-w-[400px]"
           >
-            <div className="w-24 h-24 rounded-2xl overflow-hidden bg-emerald-900/20 border-2 border-white/30 shrink-0">
-              <img 
-                src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
-                alt="" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex flex-col text-white mr-4">
-              <span className="text-emerald-100 font-bold tracking-widest uppercase text-sm mb-1">First to Buzz</span>
-              <span className="text-4xl font-black tracking-tight">{hostParams.firstBuzz.name}</span>
+            <div className="flex items-center gap-6 w-full justify-center">
+              <div className="w-24 h-24 rounded-2xl overflow-hidden bg-emerald-900/20 border-2 border-white/30 shrink-0">
+                <img 
+                  src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
+                  alt="" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex flex-col text-white">
+                <span className="text-emerald-100 font-bold tracking-widest uppercase text-sm mb-1">First to Buzz</span>
+                <span className="text-4xl font-black tracking-tight">{hostParams.firstBuzz.name}</span>
+              </div>
             </div>
             
-            <div className="flex gap-2 border-l-2 border-emerald-400 pl-6 ml-2">
+            <div className="flex gap-2 w-full justify-center mt-2 bg-emerald-900/10 p-2 rounded-2xl">
                <button
                  onClick={() => {
                    // Ensure player exists in local state
@@ -468,7 +549,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                      handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                    }, 100);
                  }}
-                 className="bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all"
+                 className="flex-1 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all text-sm uppercase tracking-wider text-center"
                >
                  Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
                </button>
@@ -482,9 +563,9 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                      handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                    }, 100);
                  }}
-                 className="bg-rose-700 hover:bg-rose-600 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all"
+                 className="bg-rose-700 hover:bg-rose-600 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider"
                >
-                 Incorrect
+                 Incorr.
                </button>
                <button
                  onClick={() => {
@@ -497,7 +578,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                      setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
                    }
                  }}
-                 className="bg-black/30 hover:bg-black/50 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all"
+                 className="bg-black/30 hover:bg-black/50 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider"
                >
                  Skip
                </button>
@@ -686,11 +767,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                       </div>
                     </div>
                   ) : displayStage === 'answer' ? (
-                    <span className="text-amber-300 drop-shadow-lg">
+                    <span className="drop-shadow-lg" style={{ color: 'var(--color-answer-text)' }}>
                       <TypewriterText text={activeQuestion.question.answerText} />
                     </span>
                   ) : (
-                    <span className="drop-shadow-lg">
+                    <span className="drop-shadow-lg" style={{ color: 'var(--color-question-text)' }}>
                       <TypewriterText 
                         text={activeQuestion.question.questionText} 
                         onComplete={() => {
