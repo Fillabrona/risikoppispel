@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://api.dicebear.com/9.x/shapes/svg?seed=Risiko&backgroundColor=050a30" alt="Risiko oppi Spel Logo" width="120" height="120">
+  <img src="https://i.ibb.co/JWM8N3rS/Untitle22d-Photoroom.png" alt="Risiko oppi Spel Logo" width="200" height="200">
   <h1>Risiko oppi Spel</h1>
   <p>A highly customizable, fully responsive Jeopardy-style trivia game with editor and immersive TV play modes.</p>
 </div>
