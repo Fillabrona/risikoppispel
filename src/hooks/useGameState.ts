@@ -60,7 +60,7 @@ export function useGameState() {
   const updateTitle = (title: string) => setGameState((s) => ({ ...s, title }));
   
   const updateSettings = (settings: Partial<GameState['settings']>) => 
-    setGameState((s) => ({ ...s, settings: { ...s.settings, timerEnabled: false, timerDuration: 30, ...settings } }));
+    setGameState((s) => ({ ...s, settings: { ...s.settings, ...settings } }));
   
   const updateTheme = (theme: Partial<GameState['theme']>) => 
     setGameState((s) => ({ ...s, theme: { ...s.theme, ...theme } }));
