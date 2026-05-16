@@ -526,83 +526,106 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
         {(hostParams?.firstBuzz || (gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question')) && (
           <motion.div 
             layout
-            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            initial={{ opacity: 0, y: -40, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: -20, x: '-50%' }}
-            transition={{ duration: 0.3, layout: { type: 'spring', damping: 25, stiffness: 300 } }}
-            className="fixed top-[72px] left-1/2 z-[80] flex flex-row items-center gap-4"
+            exit={{ opacity: 0, y: -40, x: '-50%' }}
+            transition={{ 
+              type: 'spring', 
+              damping: 25, 
+              stiffness: 200,
+              layout: { type: 'spring', damping: 25, stiffness: 200 }
+            }}
+            className="fixed top-[88px] left-1/2 z-[80] flex flex-row items-center gap-4 filter drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
           >
-            {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && (
-              <div className="px-8 py-3 bg-black/60 border border-white/10 rounded-3xl flex items-center justify-center shadow-2xl backdrop-blur-md h-full min-h-[96px]">
-                <span className={`text-5xl font-mono font-black tabular-nums tracking-widest ${timerValue <= 5 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
-                  {timerValue.toString().padStart(2, '0')}
-                </span>
-              </div>
-            )}
+            <AnimatePresence mode="popLayout">
+              {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && (
+                <motion.div 
+                  key="timer-box"
+                  layout
+                  initial={{ opacity: 0, scale: 0.8, x: -20 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                  className="px-8 py-3 bg-slate-900 border-4 border-white/10 rounded-3xl flex items-center justify-center backdrop-blur-xl h-full min-h-[110px]"
+                >
+                  <span className={`text-6xl font-mono font-black tabular-nums tracking-widest ${timerValue <= 5 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
+                    {timerValue.toString().padStart(2, '0')}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {hostParams?.firstBuzz && activeQuestion && (
-              <div className="bg-emerald-600 rounded-3xl p-4 flex flex-row items-center gap-8 border-4 border-white/10 w-fit max-w-[90vw] shadow-2xl">
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-black/20 border border-white/20">
-                    <img 
-                      src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
-                      alt="" 
-                      className="w-full h-full object-cover"
-                    />
+            <AnimatePresence mode="popLayout">
+              {hostParams?.firstBuzz && activeQuestion && (
+                <motion.div 
+                  key="buzz-box"
+                  layout
+                  initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, x: 20 }}
+                  className="bg-emerald-600 rounded-[2rem] p-3 sm:p-4 flex flex-row items-center gap-4 sm:gap-8 border-4 border-white/20 w-fit max-w-[95vw] shadow-2xl backdrop-blur-md"
+                >
+                  <div className="flex items-center gap-3 sm:gap-4 shrink-0 pl-1 sm:pl-2">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-black/20 border-2 border-white/20">
+                      <img 
+                        src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
+                        alt="" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex flex-col text-white max-w-[120px] sm:max-w-[200px]">
+                      <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[8px] sm:text-[10px]">First to Buzz</span>
+                      <span className="text-lg sm:text-2xl font-black tracking-tight truncate">{hostParams.firstBuzz.name}</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col text-white">
-                    <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[10px]">First to Buzz</span>
-                    <span className="text-2xl font-black tracking-tight whitespace-nowrap">{hostParams.firstBuzz.name}</span>
+                  
+                  <div className="flex gap-2 shrink-0">
+                     <button
+                       onClick={() => {
+                         if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
+                           hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
+                         }
+                         setTimeout(() => {
+                           const pId = hostParams.firstBuzz.participantId;
+                           handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+                         }, 100);
+                       }}
+                       className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-2.5 px-4 sm:px-8 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap shadow-lg"
+                     >
+                       Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
+                     </button>
+                     <button
+                       onClick={() => {
+                         if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
+                           hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
+                         }
+                         setTimeout(() => {
+                           const pId = hostParams.firstBuzz.participantId;
+                           handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+                         }, 100);
+                       }}
+                       className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-2.5 px-3 sm:px-6 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider shadow-lg"
+                     >
+                       Incorr.
+                     </button>
+                     <button
+                       onClick={() => {
+                         playSound('penalize');
+                         if (gameId) {
+                           const gRef = doc(db, 'games', gameId);
+                           const pId = hostParams.firstBuzz.participantId;
+                           const wrong = hostParams.wrongBuzzes || [];
+                           if (!wrong.includes(pId)) wrong.push(pId);
+                           setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
+                         }
+                       }}
+                       className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-2.5 px-3 sm:px-6 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider"
+                     >
+                       Skip
+                     </button>
                   </div>
-                </div>
-                
-                <div className="flex gap-2 shrink-0">
-                   <button
-                     onClick={() => {
-                       if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
-                         hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
-                       }
-                       setTimeout(() => {
-                         const pId = hostParams.firstBuzz.participantId;
-                         handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
-                       }, 100);
-                     }}
-                     className="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider whitespace-nowrap"
-                   >
-                     Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
-                   </button>
-                   <button
-                     onClick={() => {
-                       if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
-                         hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
-                       }
-                       setTimeout(() => {
-                         const pId = hostParams.firstBuzz.participantId;
-                         handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
-                       }, 100);
-                     }}
-                     className="bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider"
-                   >
-                     Incorr.
-                   </button>
-                   <button
-                     onClick={() => {
-                       playSound('penalize');
-                       if (gameId) {
-                         const gRef = doc(db, 'games', gameId);
-                         const pId = hostParams.firstBuzz.participantId;
-                         const wrong = hostParams.wrongBuzzes || [];
-                         if (!wrong.includes(pId)) wrong.push(pId);
-                         setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
-                       }
-                     }}
-                     className="bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider"
-                   >
-                     Skip
-                   </button>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

@@ -27,6 +27,7 @@ export default function BuzzerView() {
   const [participantId, setParticipantId] = useState('');
   const [gameStatus, setGameStatus] = useState<any>(null);
   const [myScore, setMyScore] = useState<number | null>(null);
+  const lastNotifiedScore = useRef<number | null>(null);
   const [scoreNotification, setScoreNotification] = useState<{ delta: number, type: 'plus' | 'minus' } | null>(null);
   
   const [recording, setRecording] = useState(false);
@@ -113,17 +114,23 @@ export default function BuzzerView() {
       if (snap.exists()) {
         const data = snap.data();
         if (data.score !== undefined) {
-          if (myScore !== null && data.score !== myScore && joined) {
-            const diff = data.score - myScore;
+          if (lastNotifiedScore.current === null) {
+            lastNotifiedScore.current = data.score;
+          }
+
+          if (data.score !== lastNotifiedScore.current && joined) {
+            const diff = data.score - lastNotifiedScore.current;
+            lastNotifiedScore.current = data.score;
+            
             // Only trigger if difference is non-zero
             if (diff !== 0) {
               setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus' });
               if (diff > 0) {
                 playSound('award');
                 confetti({
-                  particleCount: 100,
-                  spread: 80,
-                  origin: { y: 0.7, x: 0.5 },
+                  particleCount: 80,
+                  spread: 60,
+                  origin: { y: 0.8, x: 0.5 },
                   colors: [getBuzzerColor(participantId), '#ffffff'],
                   ticks: 200,
                   gravity: 1.2,
@@ -632,33 +639,33 @@ export default function BuzzerView() {
       <AnimatePresence mode="wait">
         {scoreNotification && (
           <motion.div
-            key={Date.now()}
+            key={`score-${Date.now()}`}
             initial={{ opacity: 0, y: 100, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.9 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-32 z-[100] flex items-center justify-center pointer-events-none p-6"
+            className="fixed inset-x-0 bottom-12 sm:bottom-32 z-[100] flex items-center justify-center pointer-events-none p-6"
           >
             <motion.div 
               initial={{ rotate: -5 }}
               animate={{ rotate: 0 }}
-              className={`relative overflow-hidden rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-4 border-white/20 p-1 bg-slate-900`}
+              className={`relative overflow-hidden rounded-[2.5rem] shadow-[0_40px_80px_rgba(0,0,0,0.6)] border-4 border-white/20 p-1 bg-slate-900 w-full max-w-[280px] sm:max-w-xs`}
             >
-              <div className={`px-10 py-10 rounded-[2.2rem] flex flex-col items-center gap-4 ${scoreNotification.type === 'plus' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-rose-400 to-rose-600'}`}>
+              <div className={`px-6 py-10 sm:px-10 sm:py-10 rounded-[2.2rem] flex flex-col items-center gap-4 ${scoreNotification.type === 'plus' ? 'bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-700' : 'bg-gradient-to-br from-rose-400 via-rose-500 to-rose-700'}`}>
                 <div className="bg-white/20 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white">
                   {scoreNotification.type === 'plus' ? 'Point Scored' : 'Point Deducted'}
                 </div>
-                <div className="flex items-center gap-2 text-white text-7xl font-black tabular-nums">
-                  {scoreNotification.type === 'plus' ? <Plus className="w-12 h-12" /> : <Minus className="w-12 h-12" />}
+                <div className="flex items-center gap-2 text-white text-6xl sm:text-7xl font-black tabular-nums">
+                  {scoreNotification.type === 'plus' ? <Plus className="w-10 h-10 sm:w-12 sm:h-12" /> : <Minus className="w-10 h-10 sm:w-12 sm:h-12" />}
                   {scoreNotification.delta}
                 </div>
-                <div className="text-white/80 font-bold uppercase tracking-widest text-xs">
+                <div className="text-white/80 font-bold uppercase tracking-widest text-[10px] sm:text-xs text-center px-2">
                   {scoreNotification.type === 'plus' ? 'Keep it up!' : (wasTimedOut ? 'Too slow!' : 'Nice try!')}
                 </div>
               </div>
               
               {/* Glass reflection effect */}
-              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent pointer-events-none opacity-50" />
             </motion.div>
           </motion.div>
         )}
