@@ -219,8 +219,17 @@ export default function App() {
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleContextMenu = (e: MouseEvent) => {
+      if (e.target instanceof HTMLImageElement) {
+        e.preventDefault();
+      }
+    };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('contextmenu', handleContextMenu);
+    };
   }, []);
 
   return (

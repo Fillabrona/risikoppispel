@@ -33,6 +33,10 @@
   scrollbar-width: none;
   outline: none !important;
 }
+
+img {
+  -webkit-user-drag: none;
+}
 input[type="text"], input[type="number"], textarea {
   user-select: text;
 }

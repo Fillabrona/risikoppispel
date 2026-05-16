@@ -122,16 +122,13 @@ export default function BuzzerView() {
           if (data.score !== lastNotifiedScore.current && joined) {
             const prevScore = lastNotifiedScore.current || 0;
             const newScore = data.score;
-            const isEditorOnlyFallback = gameStatus?.status === 'editor' || (newScore === 0 && prevScore !== 0 && gameStatus?.status === 'editor');
-            const isNegativeRestart = prevScore < 0 && newScore === 0;
-            const isGameReset = data.resetAt && (Date.now() - data.resetAt < 5000);
             
-            const isReset = isGameReset || isEditorOnlyFallback || isNegativeRestart;
+            const isReset = data.resetAt && (Date.now() - data.resetAt < 5000);
             
             const diff = newScore - prevScore;
             lastNotifiedScore.current = newScore;
             
-            // Only trigger if difference is non-zero and NOT a reset/negative restart
+            // Only trigger if difference is non-zero and NOT a reset
             if (diff !== 0 && !isReset) {
               setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus', id: Date.now() });
               if (diff > 0) {

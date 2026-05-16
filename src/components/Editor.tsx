@@ -466,10 +466,7 @@ Output ONLY valid JSON, no markdown formatting.
       {/* Sidebar */}
       <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shadow-xl z-20">
         <div className="p-6 border-b border-slate-800">
-          <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500 tracking-tight leading-tight">
-            Risiko oppi Spel
-          </h1>
-          <p className="text-xs text-slate-500 font-medium mt-1 uppercase tracking-widest">Game Editor</p>
+          <img src="https://i.ibb.co/0j2ygVnW/fontbolt-1-Photoroom.png" alt="Risiko oppi Spel" className="h-10 w-auto" />
         </div>
 
         <nav className="flex-1 p-4 space-y-1 relative">
