@@ -53,7 +53,10 @@ function HostView() {
         if (change.type === 'added') {
           hooks.addPlayer(data.name, change.doc.id, data.voiceUri);
           if (data.score !== undefined) {
-             hooks.updatePlayerScore(change.doc.id, data.score);
+             hooks.setGameState((s: any) => ({
+                 ...s,
+                 players: s.players.map((p: any) => p.id === change.doc.id ? { ...p, score: data.score } : p)
+             }));
           }
         } else if (change.type === 'modified') {
           // Sync score or name if they changed in Firestore (e.g. from Phone view)

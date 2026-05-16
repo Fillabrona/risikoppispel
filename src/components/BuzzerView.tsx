@@ -39,6 +39,7 @@ export default function BuzzerView() {
   const [isSendingBuzz, setIsSendingBuzz] = useState(false);
   const [localHasClicked, setLocalHasClicked] = useState(false);
   const [cachedLeaderboard, setCachedLeaderboard] = useState<any[] | null>(null);
+  const [kickReason, setKickReason] = useState<string | null>(null);
   const { playSound } = useSound(false);
   const wakeLockRef = useRef<any>(null);
 
@@ -134,6 +135,9 @@ export default function BuzzerView() {
         }
       } else {
          // If host removed us, we should drop back to join screen
+         if (joined) {
+           setKickReason("You were removed by the host.");
+         }
          setJoined(false);
       }
     });
@@ -415,7 +419,14 @@ export default function BuzzerView() {
           ))}
         </div>
         <button 
-          onClick={() => { setJoined(false); setCachedLeaderboard(null); }}
+          onClick={async () => {
+            setJoined(false);
+            setCachedLeaderboard(null);
+            if (gameId && participantId) {
+              const pRef = doc(db, 'games', gameId, 'participants', participantId);
+              await deleteDoc(pRef).catch(() => {});
+            }
+          }}
           className="mt-8 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-all text-sm uppercase tracking-wider"
         >
           Exit Room
@@ -426,7 +437,12 @@ export default function BuzzerView() {
 
   if (!joined) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+        {kickReason && (
+          <div className="w-full max-w-sm mb-4 bg-red-500/10 border border-red-500/50 text-red-500 text-center font-bold px-4 py-3 rounded-xl animate-in fade-in slide-in-from-top-4">
+            {kickReason}
+          </div>
+        )}
         <div className="bg-slate-800 p-8 rounded-3xl w-full max-w-sm space-y-6 shadow-2xl">
           <h1 className="text-3xl font-bold text-white text-center tracking-tight">Join Game</h1>
           <div className="space-y-4">
@@ -503,8 +519,10 @@ export default function BuzzerView() {
   const isAnswerShown = gameStatus?.showAnswer;
   const canBuzz = isBuzzerActive && !expired && !wasWrong && !isAnswerShown && !localHasClicked;
   
-  const iWonBuzz = gameStatus?.firstBuzz?.participantId === participantId || localHasClicked;
+  const iWonBuzz = gameStatus?.firstBuzz?.participantId === participantId;
   const someoneElseWon = gameStatus?.firstBuzz && gameStatus.firstBuzz.participantId !== participantId;
+  const isPendingBuzz = localHasClicked && !gameStatus?.firstBuzz;
+  const isSkipped = isAnswerShown && !gameStatus?.firstBuzz;
 
   const buzzerColor = getBuzzerColor(participantId);
 
@@ -596,12 +614,14 @@ export default function BuzzerView() {
               className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
                 ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
                 someoneElseWon ? 'bg-slate-800 opacity-20 border-transparent saturate-0' : 
+                isSkipped ? 'bg-slate-800 opacity-40 border-transparent saturate-0 scale-95' :
+                isPendingBuzz ? 'bg-slate-700 opacity-50 border-white/5 saturate-0 scale-95' :
                 canBuzz ? 'brightness-100 scale-100' : 
                 'bg-slate-800 opacity-20 border-transparent saturate-0 scale-95'}`}
             >
               <div className="flex flex-col items-center justify-center">
-                <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${!canBuzz && !iWonBuzz ? 'opacity-40' : 'opacity-100'}`}>
-                  {iWonBuzz ? (localHasClicked && gameStatus?.firstBuzz?.participantId !== participantId ? 'BUZZED!' : 'YOUR TURN') : someoneElseWon ? 'TOO SLOW' : canBuzz ? 'BUZZ' : 'WAIT'}
+                <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${(!canBuzz && !iWonBuzz && !isPendingBuzz && !isSkipped) ? 'opacity-40' : 'opacity-100'}`}>
+                  {iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : isSkipped ? 'SKIPPED!' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : 'WAIT'}
                 </span>
               </div>
             </button>

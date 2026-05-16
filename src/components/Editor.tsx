@@ -395,10 +395,13 @@ Output ONLY valid JSON, no markdown formatting.
     if (gameId) {
       try {
         await deleteDoc(doc(db, 'games', gameId));
-        // Reset local gameId or just let it recreate?
-        // Actually, we usually want to keep the same URL for the session, 
-        // so we just clear the document content.
         await setDoc(doc(db, 'games', gameId), { status: 'editor', activeQuestion: null, firstBuzz: null });
+        
+        // Also reset all participants scores to 0 in firestore
+        for (const player of gameState.players) {
+           const pRef = doc(db, 'games', gameId, 'participants', player.id);
+           setDoc(pRef, { score: 0 }, { merge: true });
+        }
       } catch (e) {
         console.error("Failed to reset Firestore room:", e);
       }
