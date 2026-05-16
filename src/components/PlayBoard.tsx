@@ -154,10 +154,10 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
         handleDeductPoints(hostParams.firstBuzz.participantId, activeQuestion.question.bonusPoints || activeQuestion.question.points, true);
       } else {
         playSound('penalize');
-        // No one answered, just reveal answer or wait
       }
+      setTimerValue(null);
     }
-  }, [activeQuestion, displayStage, timerValue, gameState.settings?.timerEnabled, playSound, hostParams?.firstBuzz, handleDeductPoints]);
+  }, [activeQuestion, displayStage, timerValue, gameState.settings?.timerEnabled, playSound, hostParams?.firstBuzz]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -458,27 +458,27 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     >
       {/* Header with Title and Controls */}
       <div className="w-full flex-none flex items-center justify-center h-16 relative z-10 border-b border-white/5 bg-black/10 backdrop-blur-sm">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-widest uppercase text-white/90 drop-shadow-md leading-none mt-[2px] pointer-events-none">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-widest uppercase text-white/90 drop-shadow-md leading-none pointer-events-none">
           {gameState.title}
         </h1>
         
-        <div className="absolute inset-y-0 right-4 flex items-center gap-2 opacity-30 hover:opacity-100 transition-opacity duration-300">
-          <button onClick={() => { playSound('click'); setBoardScale(s => Math.min(s + 0.1, 2)); }} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+        <div className="absolute top-0 bottom-0 right-4 flex items-center gap-2 opacity-30 hover:opacity-100 transition-opacity duration-300">
+          <button onClick={() => { playSound('click'); setBoardScale(s => Math.min(s + 0.1, 2)); }} className="h-10 w-10 bg-black/30 hover:bg-black/50 rounded-xl text-white transition-all flex items-center justify-center">
             <ZoomIn className="w-5 h-5" />
           </button>
-          <button onClick={() => { playSound('click'); setBoardScale(s => Math.max(s - 0.1, 0.5)); }} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+          <button onClick={() => { playSound('click'); setBoardScale(s => Math.max(s - 0.1, 0.5)); }} className="h-10 w-10 bg-black/30 hover:bg-black/50 rounded-xl text-white transition-all flex items-center justify-center">
             <ZoomOut className="w-5 h-5" />
           </button>
-          <button onClick={() => { playSound('click'); setShowQR(v => !v); }} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+          <button onClick={() => { playSound('click'); setShowQR(v => !v); }} className="h-10 w-10 bg-black/30 hover:bg-black/50 rounded-xl text-white transition-all flex items-center justify-center">
             <QrCode className="w-5 h-5" />
           </button>
-          <button onClick={() => { playSound('click'); setIsMuted(m => !m); }} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+          <button onClick={() => { playSound('click'); setIsMuted(m => !m); }} className="h-10 w-10 bg-black/30 hover:bg-black/50 rounded-xl text-white transition-all flex items-center justify-center">
             {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
-          <button onClick={toggleFullscreen} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+          <button onClick={toggleFullscreen} className="h-10 w-10 bg-black/30 hover:bg-black/50 rounded-xl text-white transition-all flex items-center justify-center">
             {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
           </button>
-          <button onClick={() => { playSound('click'); onEdit(); }} className="bg-black/30 hover:bg-black/50 p-2 rounded-xl text-white transition-all">
+          <button onClick={() => { playSound('click'); onEdit(); }} className="h-10 w-10 bg-black/30 hover:bg-black/50 rounded-xl text-white transition-all flex items-center justify-center">
             <Settings className="w-5 h-5" />
           </button>
         </div>
@@ -518,74 +518,97 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       </AnimatePresence>
 
       <AnimatePresence>
-        {hostParams?.firstBuzz && activeQuestion && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: -20, x: '-50%' }}
-            transition={{ duration: 0.2 }}
-            className="fixed top-[72px] left-1/2 z-[80] bg-emerald-600 rounded-3xl p-4 flex flex-row items-center gap-8 border-4 border-white/10 w-fit max-w-[90vw]"
-          >
-            <div className="flex items-center gap-4 shrink-0">
-              <div className="w-16 h-16 rounded-xl overflow-hidden bg-black/20 border border-white/20">
-                <img 
-                  src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
-                  alt="" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex flex-col text-white">
-                <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[10px]">First to Buzz</span>
-                <span className="text-2xl font-black tracking-tight whitespace-nowrap">{hostParams.firstBuzz.name}</span>
-              </div>
-            </div>
-            
-            <div className="flex gap-2 shrink-0">
-               <button
-                 onClick={() => {
-                   if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
-                     hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
-                   }
-                   setTimeout(() => {
-                     const pId = hostParams.firstBuzz.participantId;
-                     handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
-                   }, 100);
-                 }}
-                 className="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider whitespace-nowrap"
-               >
-                 Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
-               </button>
-               <button
-                 onClick={() => {
-                   if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
-                     hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
-                   }
-                   setTimeout(() => {
-                     const pId = hostParams.firstBuzz.participantId;
-                     handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
-                   }, 100);
-                 }}
-                 className="bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider"
-               >
-                 Incorr.
-               </button>
-               <button
-                 onClick={() => {
-                   playSound('penalize');
-                   if (gameId) {
-                     const gRef = doc(db, 'games', gameId);
-                     const pId = hostParams.firstBuzz.participantId;
-                     const wrong = hostParams.wrongBuzzes || [];
-                     if (!wrong.includes(pId)) wrong.push(pId);
-                     setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
-                   }
-                 }}
-                 className="bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider"
-               >
-                 Skip
-               </button>
-            </div>
-          </motion.div>
+        {(hostParams?.firstBuzz || (gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question')) && activeQuestion && (
+          <div className="fixed top-[72px] left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3">
+            <AnimatePresence mode="wait">
+              {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && (
+                <motion.div 
+                  key="timer"
+                  initial={{ opacity: 0, scale: 0.8, x: -20 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                  className="px-6 py-4 bg-black/60 border border-white/10 rounded-3xl flex items-center gap-4 shadow-2xl backdrop-blur-md"
+                >
+                  <span className={`text-4xl font-mono font-black tabular-nums tracking-widest ${timerValue <= 5 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
+                    {timerValue.toString().padStart(2, '0')}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence mode="wait">
+              {hostParams?.firstBuzz && (
+                <motion.div 
+                  key="buzzer-popup"
+                  initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, x: 20 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-emerald-600 rounded-3xl p-4 flex flex-row items-center gap-6 border-4 border-white/10 w-fit max-w-[80vw] shadow-2xl"
+                >
+                  <div className="flex items-center gap-4 shrink-0">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-black/20 border border-white/20">
+                      <img 
+                        src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
+                        alt="" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex flex-col text-white">
+                      <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[10px]">First to Buzz</span>
+                      <span className="text-2xl font-black tracking-tight whitespace-nowrap">{hostParams.firstBuzz.name}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => {
+                        if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
+                          hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
+                        }
+                        setTimeout(() => {
+                          const pId = hostParams.firstBuzz.participantId;
+                          handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+                        }, 100);
+                      }}
+                      className="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm uppercase tracking-wider whitespace-nowrap"
+                    >
+                      Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
+                          hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
+                        }
+                        setTimeout(() => {
+                          const pId = hostParams.firstBuzz.participantId;
+                          handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+                        }, 100);
+                      }}
+                      className="bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider"
+                    >
+                      Incorr.
+                    </button>
+                    <button
+                      onClick={() => {
+                        playSound('penalize');
+                        if (gameId) {
+                          const gRef = doc(db, 'games', gameId);
+                          const pId = hostParams.firstBuzz.participantId;
+                          const wrong = hostParams.wrongBuzzes || [];
+                          if (!wrong.includes(pId)) wrong.push(pId);
+                          setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
+                        }
+                      }}
+                      className="bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm uppercase tracking-wider"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         )}
       </AnimatePresence>
 
@@ -713,11 +736,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
             </button>
 
             {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && (
-              <div className="absolute top-8 left-1/2 -translate-x-1/2 px-8 py-3 bg-black/40 border border-white/10 rounded-2xl flex items-center gap-4 shadow-xl z-20 backdrop-blur-md">
-                <span className={`text-4xl font-mono font-black tabular-nums tracking-widest ${timerValue <= 5 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
-                  {timerValue.toString().padStart(2, '0')}
-                </span>
-              </div>
+              <div className="opacity-0" />
             )}
 
             <div 
@@ -777,7 +796,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                   )}
                 </motion.div>
                 
-                {displayStage !== 'answer' && (
+                {displayStage === 'bonus_intro' && (
                   <div className="mt-16 flex flex-col items-center gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
                     <div className="px-6 py-2 border border-white/20 rounded-xl bg-white/5 backdrop-blur-md font-mono text-sm tracking-widest font-bold shadow-[0_4px_0_rgba(255,255,255,0.1)] group-hover:shadow-[0_2px_0_rgba(255,255,255,0.1)] group-hover:translate-y-[2px] transition-all">
                       SPACE

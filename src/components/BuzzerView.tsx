@@ -4,6 +4,7 @@ import { db, auth, loginAnonymously } from '../lib/firebase';
 import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
 import { Mic, Square, Loader2, Trophy, Minus, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import ReactConfetti from 'react-confetti';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSound } from '../hooks/useSound';
 
@@ -626,35 +627,37 @@ export default function BuzzerView() {
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 select-none overflow-hidden touch-manipulation relative">
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {scoreNotification && (
           <motion.div
             key={Date.now()}
-            initial={{ opacity: 0, scale: 0.5, y: 50 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ exit: { duration: 0.2 } }}
-            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none p-6"
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="fixed bottom-32 left-0 right-0 z-[100] flex items-center justify-center pointer-events-none px-6"
           >
             <motion.div 
-              initial={{ rotate: -5 }}
-              animate={{ rotate: 0 }}
-              className={`relative overflow-hidden rounded-[2.5rem] shadow-[0_30px_60px_rgba(0,0,0,0.5)] border-4 border-white/20 p-1 bg-slate-900`}
+              className={`relative overflow-hidden rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-4 border-white/10 p-1 bg-slate-900`}
             >
-              <div className={`px-10 py-12 rounded-[2.2rem] flex flex-col items-center gap-4 ${scoreNotification.type === 'plus' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-rose-400 to-rose-600'}`}>
-                <div className="bg-white/20 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white">
-                  {scoreNotification.type === 'plus' ? 'Point Scored' : 'Point Deducted'}
+              <div className={`px-8 py-5 rounded-[1.3rem] flex items-stretch gap-6 ${scoreNotification.type === 'plus' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-rose-400 to-rose-600'}`}>
+                <div className="flex flex-col justify-center">
+                  <div className="bg-white/20 px-3 py-0.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-white w-fit mb-1">
+                    {scoreNotification.type === 'plus' ? 'Score' : 'Penalty'}
+                  </div>
+                  <div className="text-white font-bold uppercase tracking-widest text-[10px] opacity-80">
+                    {scoreNotification.type === 'plus' ? 'Keep it up!' : (wasTimedOut ? 'Too slow!' : 'Nice try!')}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-white text-7xl font-black tabular-nums">
-                  {scoreNotification.type === 'plus' ? <Plus className="w-12 h-12" /> : <Minus className="w-12 h-12" />}
+                
+                <div className="w-px bg-white/20 my-1" />
+                
+                <div className="flex items-center gap-1 text-white text-5xl font-black tabular-nums">
+                  {scoreNotification.type === 'plus' ? <Plus className="w-8 h-8" /> : <Minus className="w-8 h-8" />}
                   {scoreNotification.delta}
-                </div>
-                <div className="text-white/80 font-bold uppercase tracking-widest text-xs">
-                  {scoreNotification.type === 'plus' ? 'Keep it up!' : (wasTimedOut ? 'Too slow!' : 'Nice try!')}
                 </div>
               </div>
               
-              {/* Glass reflection effect */}
               <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
             </motion.div>
           </motion.div>
@@ -684,8 +687,24 @@ export default function BuzzerView() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center w-full">
-        <div className="relative group">
+      <div className="flex-1 flex flex-col items-center justify-center w-full relative">
+        {/* Rear Confetti Layer */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <AnimatePresence>
+            {scoreNotification && scoreNotification.type === 'plus' && (
+              <ReactConfetti 
+                width={window.innerWidth}
+                height={window.innerHeight}
+                numberOfPieces={150}
+                recycle={false}
+                gravity={0.1}
+                colors={[buzzerColor, '#ffffff', '#ffd700']}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="relative group z-10">
           {/* Visual indicator of "can buzz" state without outer glow */}
           <button
             onPointerDown={(e) => {

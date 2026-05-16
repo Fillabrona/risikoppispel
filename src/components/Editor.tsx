@@ -1111,13 +1111,14 @@ Output ONLY valid JSON, no markdown formatting.
                   </div>
                   
                   <div className="w-full aspect-video max-h-[350px] rounded-3xl overflow-hidden border-4 border-slate-800 shadow-xl relative mb-8 group/preview">
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="popLayout" initial={false}>
                       {previewSlide === 0 ? (
                         <motion.div 
                           key="board"
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.4, ease: "easeInOut" }}
                           className="absolute inset-0"
                         >
                           <div className="absolute inset-0" style={{ background: gameState.theme.boardBg }} />
@@ -1141,9 +1142,10 @@ Output ONLY valid JSON, no markdown formatting.
                       ) : previewSlide === 1 ? (
                         <motion.div 
                           key="question"
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.4, ease: "easeInOut" }}
                           className="absolute inset-0 flex items-center justify-center p-8"
                           style={{ background: gameState.theme.activeBg }}
                         >
@@ -1157,9 +1159,10 @@ Output ONLY valid JSON, no markdown formatting.
                       ) : (
                         <motion.div 
                           key="answer"
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.4, ease: "easeInOut" }}
                           className="absolute inset-0 flex items-center justify-center p-8"
                           style={{ background: gameState.theme.activeBg }}
                         >
