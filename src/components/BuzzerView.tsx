@@ -28,6 +28,7 @@ export default function BuzzerView() {
   const [gameStatus, setGameStatus] = useState<any>(null);
   const [myScore, setMyScore] = useState<number | null>(null);
   const lastNotifiedScore = useRef<number | null>(null);
+  const lastStatus = useRef<string | null>(null);
   const [scoreNotification, setScoreNotification] = useState<{ delta: number, type: 'plus' | 'minus', id: number } | null>(null);
   
   const [recording, setRecording] = useState(false);
@@ -119,12 +120,20 @@ export default function BuzzerView() {
           }
 
           if (data.score !== lastNotifiedScore.current && joined) {
-            const isReset = gameStatus?.status === 'editor' || (data.score === 0 && lastNotifiedScore.current !== 0 && gameStatus?.status === 'editor');
+            const isReset = gameStatus?.status === 'editor' || (data.score === 0 && lastNotifiedScore.current !== 0);
             const diff = data.score - (lastNotifiedScore.current || 0);
+            
+            // If it's a reset, just sync the ref and don't notify
+            if (isReset && data.score === 0) {
+              lastNotifiedScore.current = data.score;
+              setMyScore(data.score);
+              return;
+            }
+
             lastNotifiedScore.current = data.score;
             
             // Only trigger if difference is non-zero and NOT a reset
-            if (diff !== 0 && !isReset) {
+            if (diff !== 0) {
               setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus', id: Date.now() });
               if (diff > 0) {
                 playSound('award');
@@ -180,8 +189,13 @@ export default function BuzzerView() {
            setCachedLeaderboard(data.players);
         } else if (data.status === 'editor') {
            setCachedLeaderboard(null);
+           // Force score sync to zero when entering editor mode to prevent glitches
+           if (lastStatus.current !== 'editor') {
+             lastNotifiedScore.current = 0;
+           }
         }
 
+        lastStatus.current = data.status;
         setGameStatus(data);
       } else {
         setGameStatus(null);
@@ -641,16 +655,16 @@ export default function BuzzerView() {
         {scoreNotification && (
           <motion.div
             key={scoreNotification.id}
-            initial={{ opacity: 0, y: 80, scale: 0.7 }}
+            initial={{ opacity: 0, y: 100, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 60, scale: 0.9, transition: { duration: 0.15 } }}
+            exit={{ opacity: 0, y: -40, scale: 0.9, transition: { duration: 0.2 } }}
             transition={{ 
               type: 'spring', 
-              damping: 25, 
-              stiffness: 250,
-              mass: 0.6
+              damping: 20, 
+              stiffness: 300,
+              mass: 0.5
             }}
-            className="fixed inset-x-4 bottom-12 z-[110] flex items-center justify-center pointer-events-none"
+            className="fixed inset-x-4 bottom-16 z-[110] flex items-center justify-center pointer-events-none"
           >
             <motion.div 
               className={`relative overflow-hidden rounded-2xl border-2 border-white/20 px-5 py-3 shadow-xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500' : 'bg-rose-500'}`}
