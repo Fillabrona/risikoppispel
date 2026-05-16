@@ -295,7 +295,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
     if (gameId) {
       const gRef = doc(db, 'games', gameId);
-      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [], timedOutPlayers: [], typingFinished: false }, { merge: true });
+      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [], timedOutPlayers: [], typingFinished: false, manuallySkipped: false }, { merge: true });
     }
   }
 
