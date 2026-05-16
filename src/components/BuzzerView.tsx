@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, auth, loginAnonymously } from '../lib/firebase';
-import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { Mic, Square, Loader2, Trophy, Minus, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
@@ -116,7 +116,7 @@ export default function BuzzerView() {
         const data = snap.data();
         if (data.score !== undefined) {
           if (lastNotifiedScore.current === null) {
-            lastNotifiedScore.current = 0;
+            lastNotifiedScore.current = data.score;
           }
 
           if (data.score !== lastNotifiedScore.current && joined) {
@@ -487,8 +487,8 @@ export default function BuzzerView() {
             participantId,
             name: avatarName,
             avatarUrl,
-            time: new Date().toISOString(),
-            serverTime: new Date().toISOString(), // We could use serverTimestamp, but ISOString sorts well enough for client tracking
+            time: serverTimestamp(),
+            serverTime: serverTimestamp(),
           }
         });
       });

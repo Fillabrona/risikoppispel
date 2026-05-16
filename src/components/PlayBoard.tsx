@@ -99,7 +99,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
         setHostParams(data);
         
         // Handle new buzzes
-        if (data.firstBuzz && (!firstBuzzRef.current || firstBuzzRef.current.participantId !== data.firstBuzz.participantId || firstBuzzRef.current.serverTime !== data.firstBuzz.serverTime)) {
+        if (data.firstBuzz && (!firstBuzzRef.current || firstBuzzRef.current.participantId !== data.firstBuzz.participantId || JSON.stringify(firstBuzzRef.current.serverTime) !== JSON.stringify(data.firstBuzz.serverTime))) {
           firstBuzzRef.current = data.firstBuzz;
           
           const player = gameState.players.find(p => p.id === data.firstBuzz.participantId);
