@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, auth, loginAnonymously } from '../lib/firebase';
 import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
-import { Mic, Square, Loader2, Trophy, Minus, Plus } from 'lucide-react';
+import { Mic, Square, Loader2, Trophy, Minus, Plus, Gamepad2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSound } from '../hooks/useSound';
@@ -37,6 +37,7 @@ export default function BuzzerView() {
   const [isAuth, setIsAuth] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [isSendingBuzz, setIsSendingBuzz] = useState(false);
+  const [localHasClicked, setLocalHasClicked] = useState(false);
   const { playSound } = useSound(false);
   const wakeLockRef = useRef<any>(null);
 
@@ -154,14 +155,9 @@ export default function BuzzerView() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         
-        // Sound logic: play sound if we JUST successfully buzzed
-        if (data.firstBuzz?.participantId === participantId && gameStatus?.firstBuzz?.participantId !== participantId) {
-          if (data.firstBuzz.voiceUri) {
-            const audio = new Audio(data.firstBuzz.voiceUri);
-            audio.play().catch(() => playSound('reveal'));
-          } else {
-            playSound('reveal');
-          }
+        // Reset localHasClicked if question is cleared, or if someone else buzzed
+        if (!data.activeQuestion || (data.firstBuzz && data.firstBuzz.participantId !== participantId)) {
+          setLocalHasClicked(false);
         }
 
         setGameStatus(data);
@@ -322,7 +318,7 @@ export default function BuzzerView() {
   };
 
   const buzzOut = async () => {
-    if (!gameId || !gameStatus?.activeQuestion || gameStatus.firstBuzz || isSendingBuzz) return;
+    if (!gameId || !gameStatus?.activeQuestion || gameStatus.firstBuzz || isSendingBuzz || localHasClicked) return;
     
     // Safety check: only buzz if typing is finished
     if (!gameStatus.typingFinished) return;
@@ -339,8 +335,19 @@ export default function BuzzerView() {
     }
     
     setIsSendingBuzz(true);
+    setLocalHasClicked(true);
     
     const avatarName = localStorage.getItem('participantName') || name;
+    
+    // Play buzzing local feedback instantly, even before server responds. 
+    // This gives them instant satisfaction that they clicked.
+    if (voiceUri) {
+      const audio = new Audio(voiceUri);
+      audio.play().catch(() => playSound('reveal'));
+    } else {
+      playSound('reveal');
+    }
+
     const avatarUrl = `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(avatarName)}&backgroundColor=transparent`;
     
     try {
@@ -353,6 +360,7 @@ export default function BuzzerView() {
         
         if (data.firstBuzz) {
           // Someone already buzzed
+          setLocalHasClicked(false);
           return;
         }
 
@@ -363,11 +371,13 @@ export default function BuzzerView() {
             avatarUrl,
             voiceUri,
             time: new Date().toISOString(),
+            serverTime: new Date().toISOString(), // We could use serverTimestamp, but ISOString sorts well enough for client tracking
           }
         });
       });
     } catch (e) {
       console.error("Buzz transaction failed:", e);
+      setLocalHasClicked(false);
     } finally {
       setIsSendingBuzz(false);
     }
@@ -450,10 +460,10 @@ export default function BuzzerView() {
   
   const wasWrong = gameStatus?.wrongBuzzes?.includes(participantId);
   const isAnswerShown = gameStatus?.showAnswer;
-  const canBuzz = isBuzzerActive && !expired && !wasWrong && !isAnswerShown;
+  const canBuzz = isBuzzerActive && !expired && !wasWrong && !isAnswerShown && !localHasClicked;
   
-  const iWonBuzz = gameStatus?.firstBuzz?.participantId === participantId;
-  const someoneElseWon = gameStatus?.firstBuzz && !iWonBuzz;
+  const iWonBuzz = gameStatus?.firstBuzz?.participantId === participantId || localHasClicked;
+  const someoneElseWon = gameStatus?.firstBuzz && gameStatus.firstBuzz.participantId !== participantId;
 
   const buzzerColor = getBuzzerColor(participantId);
 
@@ -524,13 +534,8 @@ export default function BuzzerView() {
             animate={{ opacity: 1, scale: 1 }}
             className="text-center space-y-6"
           >
-            <div className="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mx-auto border border-white/10 shadow-inner">
-               <motion.div
-                 animate={{ rotate: [0, 10, -10, 0] }}
-                 transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-               >
-                 <Trophy className="w-10 h-10 text-amber-500/80" />
-               </motion.div>
+            <div className="w-24 h-24 bg-slate-800/80 rounded-[2rem] flex items-center justify-center mx-auto border border-white/5 shadow-inner">
+                 <Gamepad2 className="w-10 h-10 text-slate-500/80" />
             </div>
             <div className="space-y-2">
               <h2 className="text-2xl font-black text-white/90 tracking-[0.2em] uppercase">Ready</h2>
@@ -541,8 +546,11 @@ export default function BuzzerView() {
           <div className="relative group">
             {/* Visual indicator of "can buzz" state without outer glow */}
             <button
-              onClick={buzzOut}
-              disabled={!canBuzz}
+              onPointerDown={(e) => {
+                e.preventDefault(); // Prevent double firing mouse/touch events
+                buzzOut();
+              }}
+              disabled={!canBuzz && !localHasClicked}
               style={{ backgroundColor: canBuzz ? buzzerColor : undefined }}
               className={`w-[80vw] max-w-[320px] aspect-square rounded-full transition-all duration-300 transform active:scale-95 flex items-center justify-center select-none touch-none border-[12px] border-black/30 shadow-none
                 ${iWonBuzz ? 'bg-emerald-500 border-white/10' : 
@@ -551,8 +559,8 @@ export default function BuzzerView() {
                 'bg-slate-800 opacity-20 border-transparent saturate-0 scale-95'}`}
             >
               <div className="flex flex-col items-center justify-center">
-                <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${!canBuzz ? 'opacity-40' : 'opacity-100'}`}>
-                  {iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : canBuzz ? 'BUZZ' : 'WAIT'}
+                <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${!canBuzz && !iWonBuzz ? 'opacity-40' : 'opacity-100'}`}>
+                  {iWonBuzz ? (localHasClicked && gameStatus?.firstBuzz?.participantId !== participantId ? 'BUZZED!' : 'YOUR TURN') : someoneElseWon ? 'TOO SLOW' : canBuzz ? 'BUZZ' : 'WAIT'}
                 </span>
               </div>
             </button>
