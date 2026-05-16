@@ -9,6 +9,32 @@ import { auth, loginAnonymously, db } from './lib/firebase';
 import { collection, doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 function HostView() {
+  const [isSmallScreen, setIsSmallScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
+  
+  useEffect(() => {
+    const checkSize = () => setIsSmallScreen(window.innerWidth < 1024);
+    window.addEventListener('resize', checkSize);
+    return () => window.removeEventListener('resize', checkSize);
+  }, []);
+
+  if (isSmallScreen) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-8 text-center text-white font-sans">
+        <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-cyan-500/20">
+          <QrCode className="w-10 h-10 text-white" />
+        </div>
+        <h1 className="text-3xl font-black mb-4 tracking-tight uppercase">Buzzer Mode Only</h1>
+        <p className="text-slate-400 max-w-xs mb-10 leading-relaxed font-medium">
+          The game board and editor are designed for larger screens. Scan the QR code on the host's screen with your phone to join as a player!
+        </p>
+        <div className="w-full h-1 bg-slate-800 rounded-full mb-10 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 animate-pulse"></div>
+        </div>
+        <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.2em]">Open on a laptop to host</p>
+      </div>
+    );
+  }
+
   const { gameState, ...hooks } = useGameState();
   const [mode, setMode] = useState<'editor' | 'play'>('editor');
   const [gameId, setGameId] = useState('');
@@ -101,32 +127,6 @@ function HostView() {
   useEffect(() => {
     localStorage.setItem('isMuted', String(isMuted));
   }, [isMuted]);
-
-  const [isSmallScreen, setIsSmallScreen] = useState(false);
-  useEffect(() => {
-    const checkSize = () => setIsSmallScreen(window.innerWidth < 1024);
-    checkSize();
-    window.addEventListener('resize', checkSize);
-    return () => window.removeEventListener('resize', checkSize);
-  }, []);
-
-  if (isSmallScreen) {
-    return (
-      <div className="min-h-screen bg-[#0f172a] flex flex-col items-center justify-center p-8 text-center text-white font-sans">
-        <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-cyan-500/20">
-          <QrCode className="w-10 h-10 text-white" />
-        </div>
-        <h1 className="text-3xl font-black mb-4 tracking-tight uppercase">Buzzer Mode Only</h1>
-        <p className="text-slate-400 max-w-xs mb-10 leading-relaxed font-medium">
-          The game board and editor are designed for larger screens. Scan the QR code on the host's screen with your phone to join as a player!
-        </p>
-        <div className="w-full h-1 bg-slate-800 rounded-full mb-10 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 animate-[shimmer_2s_infinite]"></div>
-        </div>
-        <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.2em]">Open on a laptop to host</p>
-      </div>
-    );
-  }
 
   const allAnswered = gameState.categories.length > 0 && 
     gameState.categories.every(cat => cat.questions.length > 0 && cat.questions.every(q => q.isAnswered));
