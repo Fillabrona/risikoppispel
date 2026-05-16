@@ -535,7 +535,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
               stiffness: 200,
               layout: { type: 'spring', damping: 25, stiffness: 200 }
             }}
-            className="fixed top-8 left-1/2 z-[80] flex flex-row items-center gap-4"
+            className="fixed top-4 left-1/2 z-[80] flex flex-row items-center gap-4"
           >
             <AnimatePresence mode="popLayout">
               {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && (
@@ -589,7 +589,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                            handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                          }, 100);
                        }}
-                       className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-2.5 px-4 sm:px-8 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap shadow-lg"
+                       className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-2.5 px-4 sm:px-8 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap shadow-none"
                      >
                        Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
                      </button>
@@ -603,7 +603,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                            handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                          }, 100);
                        }}
-                       className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-2.5 px-3 sm:px-6 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider shadow-lg"
+                       className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-2.5 px-3 sm:px-6 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider shadow-none"
                      >
                        WRONG
                      </button>
@@ -618,7 +618,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                            setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
                          }
                        }}
-                       className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-2.5 px-3 sm:px-6 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider"
+                       className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-2.5 px-3 sm:px-6 rounded-[1.25rem] transition-all text-xs sm:text-sm uppercase tracking-wider shadow-none"
                      >
                        Skip
                      </button>
@@ -762,7 +762,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
             )}
 
             <div 
-              className="flex-1 flex items-center justify-center z-10" 
+              className={`flex-1 flex items-center justify-center z-10 transition-all duration-500 ${hostParams?.firstBuzz ? 'pt-40' : ''}`} 
               onClick={() => {
                 if (displayStage === 'bonus_intro') {
                   playSound('reveal');
