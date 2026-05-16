@@ -28,7 +28,7 @@ export default function BuzzerView() {
   const [gameStatus, setGameStatus] = useState<any>(null);
   const [myScore, setMyScore] = useState<number | null>(null);
   const lastNotifiedScore = useRef<number | null>(null);
-  const [scoreNotification, setScoreNotification] = useState<{ delta: number, type: 'plus' | 'minus' } | null>(null);
+  const [scoreNotification, setScoreNotification] = useState<{ delta: number, type: 'plus' | 'minus', id: number } | null>(null);
   
   const [recording, setRecording] = useState(false);
   const [voiceUri, setVoiceUri] = useState<string>('');
@@ -119,13 +119,13 @@ export default function BuzzerView() {
           }
 
           if (data.score !== lastNotifiedScore.current && joined) {
-            const isReset = gameStatus?.status === 'editor';
-            const diff = data.score - lastNotifiedScore.current;
+            const isReset = gameStatus?.status === 'editor' || (data.score === 0 && lastNotifiedScore.current !== 0 && gameStatus?.status === 'editor');
+            const diff = data.score - (lastNotifiedScore.current || 0);
             lastNotifiedScore.current = data.score;
             
             // Only trigger if difference is non-zero and NOT a reset
             if (diff !== 0 && !isReset) {
-              setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus' });
+              setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus', id: Date.now() });
               if (diff > 0) {
                 playSound('award');
                 confetti({
@@ -637,18 +637,18 @@ export default function BuzzerView() {
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 select-none touch-manipulation relative">
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         {scoreNotification && (
           <motion.div
-            key={`score-${Date.now()}`}
-            initial={{ opacity: 0, y: 40, scale: 0.85 }}
+            key={scoreNotification.id}
+            initial={{ opacity: 0, y: 80, scale: 0.7 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.9 }}
+            exit={{ opacity: 0, y: 60, scale: 0.9, transition: { duration: 0.15 } }}
             transition={{ 
               type: 'spring', 
-              damping: 30, 
-              stiffness: 400,
-              mass: 0.8
+              damping: 25, 
+              stiffness: 250,
+              mass: 0.6
             }}
             className="fixed inset-x-4 bottom-12 z-[110] flex items-center justify-center pointer-events-none"
           >

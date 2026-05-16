@@ -210,9 +210,6 @@ function MobileBlocker() {
       <p className="text-slate-400 max-w-xs mx-auto mb-8 leading-relaxed">
         The host and editor views are designed for larger displays. To play, please scan the QR code on the host's screen.
       </p>
-      <div className="px-6 py-3 border border-white/10 rounded-2xl bg-white/5 text-cyan-400 font-mono text-xs uppercase tracking-widest font-bold">
-        Lobby Code Required
-      </div>
     </div>
   );
 }

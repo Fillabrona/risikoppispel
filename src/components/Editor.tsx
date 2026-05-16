@@ -19,6 +19,7 @@ interface EditorProps {
 
 function CustomSelect({ value, onChange, options, label }: { value: string, onChange: (val: string) => void, options: {value: string, label: string}[], label: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpwards, setOpenUpwards] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -31,6 +32,15 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleToggle = () => {
+    if (!isOpen && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpwards(spaceBelow < 200);
+    }
+    setIsOpen(!isOpen);
+  };
+
   const selectedOption = options.find(o => o.value === value) || options[0];
 
   return (
@@ -38,7 +48,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1 mb-2 block">{label}</label>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="w-full px-4 py-3 bg-slate-950 border border-slate-700 hover:border-purple-500/50 rounded-xl text-white font-medium text-sm outline-none flex items-center justify-between transition-colors shadow-sm"
       >
         <span>{selectedOption.label}</span>
@@ -46,7 +56,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
       </button>
       
       {isOpen && (
-        <div className="absolute z-[100] w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl backdrop-blur-xl">
+        <div className={`absolute z-[100] w-full bg-slate-800 border border-slate-700 rounded-xl shadow-xl backdrop-blur-xl ${openUpwards ? 'bottom-full mb-2' : 'mt-2'}`}>
           {options.map((option) => (
             <button
               key={option.value}
@@ -55,7 +65,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-4 py-3 text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${
+              className={`w-full text-left px-4 py-2.5 text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${
                 value === option.value 
                   ? 'bg-purple-500/20 text-purple-300 font-bold' 
                   : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
