@@ -525,15 +525,13 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       <AnimatePresence>
         {(hostParams?.firstBuzz || (gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question')) && (
           <motion.div 
-            layout
             initial={{ opacity: 0, y: -40, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: -40, x: '-50%' }}
             transition={{ 
               type: 'spring', 
               damping: 25, 
-              stiffness: 200,
-              layout: { type: 'spring', damping: 25, stiffness: 200 }
+              stiffness: 200
             }}
             className="fixed top-4 left-1/2 z-[80] flex flex-row items-center gap-4"
           >
@@ -541,10 +539,10 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
               {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && (
                 <motion.div 
                   key="timer-box"
-                  layout
-                  initial={{ opacity: 0, scale: 0.8, x: -20 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                   className="px-8 py-3 bg-slate-900 border-4 border-white/10 rounded-3xl flex items-center justify-center backdrop-blur-xl h-full min-h-[110px]"
                 >
                   <span className={`text-6xl font-mono font-black tabular-nums tracking-widest ${timerValue <= 5 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
@@ -558,10 +556,10 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
               {hostParams?.firstBuzz && activeQuestion && (
                 <motion.div 
                   key="buzz-box"
-                  layout
-                  initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, x: 20 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                   className="bg-emerald-600 rounded-[2rem] p-3 sm:p-4 flex flex-row items-center gap-4 sm:gap-8 border-4 border-white/20 w-fit max-w-[95vw] backdrop-blur-md"
                 >
                   <div className="flex items-center gap-3 sm:gap-4 shrink-0 pl-1 sm:pl-2">
@@ -753,16 +751,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
               <X className="w-8 h-8" />
             </button>
 
-            {gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question' && !hostParams?.firstBuzz && (
-              <div className="absolute top-8 left-1/2 -translate-x-1/2 px-8 py-3 bg-black/40 border border-white/10 rounded-2xl flex items-center gap-4 shadow-xl z-20 backdrop-blur-md">
-                <span className={`text-4xl font-mono font-black tabular-nums tracking-widest ${timerValue <= 5 ? 'text-rose-500 animate-pulse' : 'text-emerald-400'}`}>
-                  {timerValue.toString().padStart(2, '0')}
-                </span>
-              </div>
-            )}
+            {/* Timer handled by top sticky bar */}
+
 
             <div 
-              className={`flex-1 flex items-center justify-center z-10 transition-all duration-500 ${hostParams?.firstBuzz ? 'pt-40' : ''}`} 
+              className={`flex-1 flex items-center justify-center z-10 transition-all duration-500 ${(hostParams?.firstBuzz || (gameState.settings?.timerEnabled && timerValue !== null && displayStage === 'question')) ? 'pt-40' : ''}`} 
               onClick={() => {
                 if (displayStage === 'bonus_intro') {
                   playSound('reveal');

@@ -613,8 +613,8 @@ Output ONLY valid JSON, no markdown formatting.
                     </div>
                   )}
                   {gameState.categories.map((category) => (
-                    <div key={category.id} className="bg-slate-800/40 border border-slate-700 rounded-3xl overflow-hidden backdrop-blur-xl shadow-xl transition-all hover:border-slate-600">
-                      <div className="bg-slate-900/50 px-6 py-4 flex justify-between items-center border-b border-slate-700/50">
+                    <div key={category.id} className="bg-slate-800/40 border border-slate-700 rounded-3xl backdrop-blur-xl shadow-xl transition-all hover:border-slate-600 relative">
+                      <div className="bg-slate-900/50 px-6 py-4 flex justify-between items-center border-b border-slate-700/50 rounded-t-3xl overflow-hidden">
                         <div className="flex items-center space-x-4 flex-1">
                           <input
                             type="text"
@@ -844,8 +844,8 @@ Output ONLY valid JSON, no markdown formatting.
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 p-8 rounded-3xl border border-purple-500/20 backdrop-blur-xl relative overflow-hidden">
-                   <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none mix-blend-overlay"></div>
+                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 p-8 rounded-3xl border border-purple-500/20 backdrop-blur-xl relative">
+                   <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none mix-blend-overlay rounded-3xl"></div>
                    
                   <h2 className="text-2xl font-black flex items-center gap-3 mb-2 relative z-10 text-white">
                     <Wand2 className="w-7 h-7 text-purple-400" />
