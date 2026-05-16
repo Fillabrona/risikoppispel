@@ -46,7 +46,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
       </button>
       
       {isOpen && (
-        <div className="absolute z-[100] w-full mt-2 py-1 bg-slate-800 border border-slate-700 rounded-xl shadow-xl backdrop-blur-xl">
+        <div className="absolute z-[100] w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl backdrop-blur-xl">
           {options.map((option) => (
             <button
               key={option.value}
@@ -55,7 +55,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+              className={`w-full text-left px-4 py-3 text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${
                 value === option.value 
                   ? 'bg-purple-500/20 text-purple-300 font-bold' 
                   : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'

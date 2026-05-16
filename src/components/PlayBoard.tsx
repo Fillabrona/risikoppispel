@@ -291,6 +291,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     }
     setActiveQuestion(null);
     setDisplayStage('question');
+    setTimerValue(null);
 
     if (gameId) {
       const gRef = doc(db, 'games', gameId);
