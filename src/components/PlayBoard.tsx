@@ -99,15 +99,16 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
         setHostParams(data);
         
         // Handle new buzzes
-        if (data.firstBuzz && (!firstBuzzRef.current || firstBuzzRef.current.time !== data.firstBuzz.time)) {
-          firstBuzzRef.current = data.firstBuzz;
-          if (data.firstBuzz.voiceUri) {
-            const audio = new Audio(data.firstBuzz.voiceUri);
+        const firstBuzz = data.buzzes?.[0];
+        if (firstBuzz && (!firstBuzzRef.current || firstBuzzRef.current.clientTime !== firstBuzz.clientTime)) {
+          firstBuzzRef.current = firstBuzz;
+          if (firstBuzz.voiceUri) {
+            const audio = new Audio(firstBuzz.voiceUri);
             audio.play().catch(e => console.error("Voice playback failed:", e));
           } else {
             playSound('award'); // fallback if no voice
           }
-        } else if (!data.firstBuzz) {
+        } else if (!firstBuzz) {
           firstBuzzRef.current = null;
         }
       }
@@ -116,6 +117,8 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
   }, [gameId, playSound]);
 
   const allAnswered = gameState.categories.length > 0 && gameState.categories.every(cat => cat.questions.length > 0 && cat.questions.every(q => q.isAnswered));
+
+  const firstBuzz = hostParams?.buzzes?.[0];
 
   // Timer logic
   useEffect(() => {
@@ -126,14 +129,14 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       return () => clearInterval(interval);
     } else if (activeQuestion && displayStage === 'question' && gameState.settings?.timerEnabled && timerValue === 0) {
       // If someone has buzzed but didn't answer, penalize them
-      if (hostParams?.firstBuzz) {
-        handleDeductPoints(hostParams.firstBuzz.participantId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
+      if (firstBuzz) {
+        handleDeductPoints(firstBuzz.participantId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
       } else {
         playSound('penalize');
         // No one answered, just reveal answer or wait
       }
     }
-  }, [activeQuestion, displayStage, timerValue, gameState.settings?.timerEnabled, playSound, hostParams?.firstBuzz, handleDeductPoints]);
+  }, [activeQuestion, displayStage, timerValue, gameState.settings?.timerEnabled, playSound, firstBuzz, handleDeductPoints]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -213,7 +216,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           id: question.id, 
           endTime: gameState.settings?.timerEnabled ? Date.now() + gameState.settings.timerDuration * 1000 : null 
         },
-        firstBuzz: null,
+        buzzes: [],
         typingFinished: false
       });
     }
@@ -228,9 +231,17 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
     if (gameId) {
       const gRef = doc(db, 'games', gameId);
-      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [], typingFinished: false }, { merge: true });
+      await setDoc(gRef, { activeQuestion: null, buzzes: [], showAnswer: false, wrongBuzzes: [], typingFinished: false }, { merge: true });
     }
   }
+
+  // Handle victory sync to clients
+  useEffect(() => {
+    if (allAnswered && !activeQuestion && gameId) {
+      const gRef = doc(db, 'games', gameId);
+      setDoc(gRef, { status: 'finished', finalPlayers: gameState.players }, { merge: true });
+    }
+  }, [allAnswered, activeQuestion, gameId, gameState.players]);
 
   function handleAwardPoints(playerId: string, points: number) {
     playSound('award');
@@ -263,7 +274,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
          const data = snap.data();
          const wrong = data?.wrongBuzzes || [];
          if (!wrong.includes(playerId)) wrong.push(playerId);
-         setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
+         setDoc(gRef, { buzzes: [], wrongBuzzes: wrong }, { merge: true });
        });
     }
   }
@@ -425,7 +436,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       </AnimatePresence>
 
       <AnimatePresence>
-        {hostParams?.firstBuzz && activeQuestion && (
+        {firstBuzz && activeQuestion && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -435,25 +446,25 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           >
             <div className="w-24 h-24 rounded-2xl overflow-hidden bg-emerald-900/20 border-2 border-white/30 shrink-0">
               <img 
-                src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
+                src={firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(firstBuzz.name)}&backgroundColor=transparent`} 
                 alt="" 
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="flex flex-col text-white mr-4">
               <span className="text-emerald-100 font-bold tracking-widest uppercase text-sm mb-1">First to Buzz</span>
-              <span className="text-4xl font-black tracking-tight">{hostParams.firstBuzz.name}</span>
+              <span className="text-4xl font-black tracking-tight">{firstBuzz.name}</span>
             </div>
             
             <div className="flex gap-2 border-l-2 border-emerald-400 pl-6 ml-2">
                <button
                  onClick={() => {
                    // Ensure player exists in local state
-                   if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
-                     hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
+                   if (!gameState.players.find(p => p.id === firstBuzz.participantId)) {
+                     hooks.addPlayer(firstBuzz.name, firstBuzz.participantId);
                    }
                    setTimeout(() => {
-                     const pId = hostParams.firstBuzz.participantId;
+                     const pId = firstBuzz.participantId;
                      handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                    }, 100);
                  }}
@@ -463,11 +474,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                </button>
                <button
                  onClick={() => {
-                   if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
-                     hooks.addPlayer(hostParams.firstBuzz.name, hostParams.firstBuzz.participantId);
+                   if (!gameState.players.find(p => p.id === firstBuzz.participantId)) {
+                     hooks.addPlayer(firstBuzz.name, firstBuzz.participantId);
                    }
                    setTimeout(() => {
-                     const pId = hostParams.firstBuzz.participantId;
+                     const pId = firstBuzz.participantId;
                      handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                    }, 100);
                  }}
@@ -480,10 +491,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                    playSound('penalize');
                    if (gameId) {
                      const gRef = doc(db, 'games', gameId);
-                     const pId = hostParams.firstBuzz.participantId;
+                     const pId = firstBuzz.participantId;
                      const wrong = hostParams.wrongBuzzes || [];
                      if (!wrong.includes(pId)) wrong.push(pId);
-                     setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong }, { merge: true });
+                     // Clear the buzz to allow the next person
+                     setDoc(gRef, { buzzes: [], wrongBuzzes: wrong }, { merge: true });
                    }
                  }}
                  className="bg-black/30 hover:bg-black/50 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all"
