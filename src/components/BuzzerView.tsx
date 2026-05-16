@@ -122,19 +122,19 @@ export default function BuzzerView() {
             const diff = data.score - lastNotifiedScore.current;
             lastNotifiedScore.current = data.score;
             
-            // Only trigger if difference is non-zero AND NOT A RESET
-            if (diff !== 0 && !data.isReset && !gameStatus?.isResetting) {
+            // Only trigger if difference is non-zero
+            if (diff !== 0) {
               setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus' });
               if (diff > 0) {
                 playSound('award');
                 confetti({
-                  particleCount: 80,
+                  particleCount: 100,
                   spread: 70,
-                  origin: { y: 0.6, x: 0.5 },
+                  origin: { y: 0.7, x: 0.5 },
                   colors: [getBuzzerColor(participantId), '#ffffff'],
-                  ticks: 250,
-                  gravity: 1,
-                  scalar: 1.2
+                  ticks: 400,
+                  gravity: 0.9,
+                  scalar: 1.1
                 });
               } else {
                 playSound('penalize');
@@ -193,7 +193,7 @@ export default function BuzzerView() {
   // Clear score notification
   useEffect(() => {
     if (scoreNotification) {
-      const timer = setTimeout(() => setScoreNotification(null), 3000);
+      const timer = setTimeout(() => setScoreNotification(null), 2500);
       return () => clearTimeout(timer);
     }
   }, [scoreNotification]);
@@ -640,9 +640,9 @@ export default function BuzzerView() {
         {scoreNotification && (
           <motion.div
             key={`score-${Date.now()}`}
-            initial={{ opacity: 0, y: 20, scale: 0.85 }}
+            initial={{ opacity: 0, y: 40, scale: 0.85 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            exit={{ opacity: 0, y: 40, scale: 0.9 }}
             transition={{ 
               type: 'spring', 
               damping: 30, 

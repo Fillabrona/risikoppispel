@@ -951,20 +951,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     playSound('click');
                     hooks.resetBoard();
                     if (gameId) {
-                      await setDoc(doc(db, 'games', gameId), { 
-                        status: 'editor', 
-                        isResetting: true,
-                        players: gameState.players.map(p => ({ ...p, score: 0 })) 
-                      }, { merge: true });
-                      
+                      await setDoc(doc(db, 'games', gameId), { status: 'editor', players: gameState.players.map(p => ({ ...p, score: 0 })) }, { merge: true });
                       for (const player of gameState.players) {
                         const pRef = doc(db, 'games', gameId, 'participants', player.id);
-                        setDoc(pRef, { score: 0, isReset: true }, { merge: true }).catch(() => {});
+                        setDoc(pRef, { score: 0 }, { merge: true }).catch(() => {});
                       }
-
-                      setTimeout(async () => {
-                        await setDoc(doc(db, 'games', gameId), { isResetting: false }, { merge: true });
-                      }, 2000);
                     }
                   }} 
                   className="px-10 py-4 bg-white text-black hover:bg-slate-100 rounded-2xl font-black text-lg uppercase tracking-widest transition-all active:scale-95 shadow-lg border border-black/10"
@@ -976,20 +967,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     playSound('click');
                     hooks.resetBoard();
                     if (gameId) {
-                      await setDoc(doc(db, 'games', gameId), { 
-                        status: 'editor', 
-                        isResetting: true,
-                        players: gameState.players.map(p => ({ ...p, score: 0 })) 
-                      }, { merge: true });
-                      
+                      await setDoc(doc(db, 'games', gameId), { status: 'editor', players: gameState.players.map(p => ({ ...p, score: 0 })) }, { merge: true });
                       for (const player of gameState.players) {
                         const pRef = doc(db, 'games', gameId, 'participants', player.id);
-                        setDoc(pRef, { score: 0, isReset: true }, { merge: true }).catch(() => {});
+                        setDoc(pRef, { score: 0 }, { merge: true }).catch(() => {});
                       }
-
-                      setTimeout(async () => {
-                        await setDoc(doc(db, 'games', gameId), { isResetting: false }, { merge: true });
-                      }, 2000);
                     }
                     onEdit();
                   }} 

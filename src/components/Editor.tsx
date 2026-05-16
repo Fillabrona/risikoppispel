@@ -34,7 +34,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
   const selectedOption = options.find(o => o.value === value) || options[0];
 
   return (
-    <div className="relative" ref={ref}>
+    <div className={`relative ${isOpen ? 'z-[60]' : 'z-auto'}`} ref={ref}>
       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1 mb-2 block">{label}</label>
       <button
         type="button"
@@ -46,7 +46,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
       </button>
       
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 py-0 bg-slate-800 border border-slate-700 rounded-xl shadow-xl backdrop-blur-xl overflow-hidden">
+        <div className="absolute z-[100] w-full mt-2 py-1 bg-slate-800 border border-slate-700 rounded-xl shadow-xl backdrop-blur-xl">
           {options.map((option) => (
             <button
               key={option.value}
@@ -55,7 +55,7 @@ function CustomSelect({ value, onChange, options, label }: { value: string, onCh
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+              className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
                 value === option.value 
                   ? 'bg-purple-500/20 text-purple-300 font-bold' 
                   : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
@@ -394,23 +394,14 @@ Output ONLY valid JSON, no markdown formatting.
     hooks.resetBoard();
     if (gameId) {
       try {
-        await setDoc(doc(db, 'games', gameId), { 
-          status: 'editor', 
-          activeQuestion: null, 
-          firstBuzz: null,
-          isResetting: true 
-        }, { merge: true });
+        await deleteDoc(doc(db, 'games', gameId));
+        await setDoc(doc(db, 'games', gameId), { status: 'editor', activeQuestion: null, firstBuzz: null });
         
         // Also reset all participants scores to 0 in firestore
         for (const player of gameState.players) {
            const pRef = doc(db, 'games', gameId, 'participants', player.id);
-           setDoc(pRef, { score: 0, isReset: true }, { merge: true });
+           setDoc(pRef, { score: 0 }, { merge: true });
         }
-
-        // Remove the flag shortly
-        setTimeout(async () => {
-          await setDoc(doc(db, 'games', gameId), { isResetting: false }, { merge: true });
-        }, 2000);
       } catch (e) {
         console.error("Failed to reset Firestore room:", e);
       }
@@ -853,7 +844,7 @@ Output ONLY valid JSON, no markdown formatting.
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 p-8 rounded-3xl border border-purple-500/20 backdrop-blur-xl relative overflow-hidden">
+                <div className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 p-8 rounded-3xl border border-purple-500/20 backdrop-blur-xl relative">
                    <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none mix-blend-overlay"></div>
                    
                   <h2 className="text-2xl font-black flex items-center gap-3 mb-2 relative z-10 text-white">
