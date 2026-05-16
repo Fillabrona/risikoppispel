@@ -115,6 +115,13 @@ export default function BuzzerView() {
       if (snap.exists()) {
         const data = snap.data();
         if (data.score !== undefined) {
+          // If we are in editor mode, silently sync scores to prevent reset popups
+          if (gameStatus?.status === 'editor' || !joined) {
+            lastNotifiedScore.current = data.score;
+            setMyScore(data.score);
+            return;
+          }
+
           if (lastNotifiedScore.current === null) {
             lastNotifiedScore.current = data.score;
           }
@@ -122,14 +129,16 @@ export default function BuzzerView() {
           if (data.score !== lastNotifiedScore.current && joined) {
             const prevScore = lastNotifiedScore.current || 0;
             const newScore = data.score;
-            const isReset = gameStatus?.status === 'editor' || (newScore === 0 && prevScore !== 0 && gameStatus?.status === 'editor');
-            const isNegativeRestart = prevScore < 0 && newScore === 0;
+            
+            // Detection for reset: If game is in editor mode, OR if we go to 0 from something else
+            // Actually, we already handled 'editor' mode above, but this is an extra safety check.
+            const isReset = newScore === 0 && prevScore !== 0;
             
             const diff = newScore - prevScore;
             lastNotifiedScore.current = newScore;
             
-            // Only trigger if difference is non-zero and NOT a reset/negative restart
-            if (diff !== 0 && !isReset && !isNegativeRestart) {
+            // Only trigger if difference is non-zero and NOT a reset
+            if (diff !== 0 && !isReset) {
               setScoreNotification({ delta: Math.abs(diff), type: diff > 0 ? 'plus' : 'minus', id: Date.now() });
               if (diff > 0) {
                 playSound('award');
@@ -622,7 +631,7 @@ export default function BuzzerView() {
     );
   }
 
-  const isBuzzerActive = gameStatus?.activeQuestion && !gameStatus?.firstBuzz && gameStatus?.typingFinished;
+  const isBuzzerActive = gameStatus?.activeQuestion && !gameStatus?.firstBuzz && gameStatus?.typingFinished && gameStatus?.activeQuestion?.buzzerEnabled !== false;
   // If timer exceeded, they shouldn't be able to buzz
   let expired = false;
   if (isBuzzerActive && gameStatus.activeQuestion.endTime) {
