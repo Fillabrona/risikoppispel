@@ -44,16 +44,16 @@ const TypewriterText = ({ text, onComplete }: { text: string; onComplete?: () =>
 };
 
 const SmartHeader = ({ text }: { text: string }) => {
-  const getFontSize = (str: string) => {
-    if (str.length < 12) return 'text-[clamp(1rem,2.5vmin,2.5rem)]';
-    if (str.length < 18) return 'text-[clamp(0.875rem,2vmin,2rem)]';
-    if (str.length < 25) return 'text-[clamp(0.75rem,1.5vmin,1.5rem)]';
-    return 'text-[clamp(0.6rem,1.2vmin,1.2rem)]';
-  };
-
   return (
-    <div className="w-full h-full flex items-center justify-center p-2 text-center overflow-hidden">
-      <h2 className={`font-black uppercase tracking-widest leading-[1.1] ${getFontSize(text)} break-words max-w-full drop-shadow-sm`}>
+    <div className="w-full h-full flex items-center justify-center p-3 sm:p-4 text-center @container">
+      <h2 
+        className="font-black uppercase tracking-tight leading-tight break-words max-w-full drop-shadow-sm"
+        style={{
+          fontSize: text.length < 10 ? 'clamp(0.8rem, 16cqi, 2rem)' :
+                    text.length < 18 ? 'clamp(0.7rem, 13cqi, 1.5rem)' :
+                                       'clamp(0.6rem, 10cqi, 1.25rem)'
+        }}
+      >
         {text}
       </h2>
     </div>

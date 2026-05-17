@@ -7,6 +7,7 @@ import { useSound } from '../hooks/useSound';
 import { QRCodeSVG } from 'qrcode.react';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { PingIndicator } from './PingIndicator';
 
 interface EditorProps {
   gameState: GameState;
@@ -568,6 +569,7 @@ Output ONLY valid JSON, no markdown formatting.
                />
              </div>
              <div className="flex items-center gap-3">
+               <PingIndicator />
                <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} className="hidden" />
                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-colors border border-slate-700 font-bold text-sm">
                  <Upload className="w-4 h-4" /> Import
