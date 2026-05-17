@@ -34,6 +34,13 @@
   outline: none !important;
 }
 
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
 img {
   -webkit-user-drag: none;
 }

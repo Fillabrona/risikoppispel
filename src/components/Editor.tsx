@@ -442,21 +442,21 @@ Output ONLY valid JSON, no markdown formatting.
               className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
             />
             <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="relative w-full max-w-sm bg-slate-900 border border-slate-700/50 rounded-[2.5rem] p-10 shadow-2xl text-center"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm bg-slate-900 border border-slate-700/50 rounded-[2.5rem] p-8 shadow-2xl text-center"
             >
-              <div className="w-16 h-16 bg-amber-500/10 rounded-3xl flex items-center justify-center mb-8 mx-auto ring-1 ring-amber-500/20">
+              <div className="w-16 h-16 bg-amber-500/10 rounded-3xl flex items-center justify-center mb-6 mx-auto ring-1 ring-amber-500/20 shadow-inner">
                 <AlertCircle className="w-8 h-8 text-amber-500" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">{modal.title}</h3>
-              <p className="text-slate-400 text-sm leading-relaxed mb-10">{modal.message}</p>
+              <h3 className="text-2xl font-black text-white tracking-tight mb-3">{modal.title}</h3>
+              <p className="text-slate-300 text-base leading-relaxed mb-8 font-medium">{modal.message}</p>
               <button
                 onClick={() => setModal(null)}
-                className="w-full py-4 bg-white text-slate-900 font-black text-sm uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-xl hover:bg-slate-100"
+                className="w-full py-4 bg-white text-slate-900 font-display font-black text-sm uppercase rounded-2xl transition-all active:scale-95 shadow-none hover:bg-slate-200 tracking-normal"
               >
-                Got it
+                GOT IT
               </button>
             </motion.div>
           </div>

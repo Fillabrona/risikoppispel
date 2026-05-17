@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { GameState, Question } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Maximize, Minimize, Settings, X, Volume2, VolumeX, Trophy, Medal, Award, QrCode, ZoomIn, ZoomOut } from 'lucide-react';
+import { Maximize, Minimize, Settings, X, Volume2, VolumeX, Trophy, Medal, Award, QrCode, ZoomIn, ZoomOut, Layout } from 'lucide-react';
 import React from 'react';
 import { useSound } from '../hooks/useSound';
 import Confetti from 'react-confetti';
@@ -45,10 +45,10 @@ const TypewriterText = ({ text, onComplete }: { text: string; onComplete?: () =>
 
 const SmartHeader = ({ text }: { text: string }) => {
   const getFontSize = (str: string) => {
-    if (str.length < 12) return 'text-xl sm:text-2xl lg:text-3xl';
-    if (str.length < 18) return 'text-lg sm:text-xl lg:text-2xl';
-    if (str.length < 25) return 'text-base sm:text-lg lg:text-xl';
-    return 'text-sm sm:text-base lg:text-lg';
+    if (str.length < 12) return 'text-[clamp(1rem,2.5vmin,2.5rem)]';
+    if (str.length < 18) return 'text-[clamp(0.875rem,2vmin,2rem)]';
+    if (str.length < 25) return 'text-[clamp(0.75rem,1.5vmin,1.5rem)]';
+    return 'text-[clamp(0.6rem,1.2vmin,1.2rem)]';
   };
 
   return (
@@ -77,6 +77,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
   // const [gameId, setGameId] = useState<string>('');
   const [showQR, setShowQR] = useState(false);
   const [boardScale, setBoardScale] = useState(1);
+  const [boardMode, setBoardMode] = useState<'fill' | 'video' | 'square'>('fill');
   const [hostParams, setHostParams] = useState<any>(null);
   const firstBuzzRef = useRef<any>(null);
 
@@ -465,12 +466,12 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       } as React.CSSProperties}
     >
       {/* Header with Title and Controls */}
-      <div className="w-full flex-none flex items-center justify-center h-20 relative z-10 border-b border-white/5 bg-black/10 backdrop-blur-sm">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-widest uppercase text-white/90 drop-shadow-md leading-none pointer-events-none">
+      <div className="w-full flex-none flex items-center justify-between px-6 lg:px-8 h-20 relative z-10 border-b border-white/5 bg-black/10 backdrop-blur-sm">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-widest uppercase text-white/90 drop-shadow-md leading-none select-none">
           {gameState.title}
         </h1>
         
-        <div className="absolute inset-y-0 right-6 flex items-center gap-3 opacity-30 hover:opacity-100 transition-opacity duration-300">
+        <div className="flex items-center gap-3 opacity-30 hover:opacity-100 transition-opacity duration-300">
           <button onClick={() => { playSound('click'); setBoardScale(s => Math.min(s + 0.1, 2)); }} className="bg-white/5 hover:bg-white/15 p-2.5 rounded-xl text-white transition-all border border-white/5 shadow-inner">
             <ZoomIn className="w-5 h-5" />
           </button>
@@ -629,20 +630,24 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       </AnimatePresence>
 
       {/* Main Board Area */}
-      <div className="flex-1 px-4 sm:px-6 lg:px-8 flex items-stretch justify-center min-h-0 z-10 mb-2 mt-4 relative overflow-hidden">
+      <div className="flex-1 px-4 sm:px-6 lg:px-8 flex items-center justify-center min-h-0 z-10 mb-2 mt-4 relative overflow-hidden @container">
         <div 
-          className="w-full h-full grid gap-2 sm:gap-3 transition-transform duration-300 origin-center" 
+          className={`grid gap-2 sm:gap-3 transition-all duration-300 origin-center ${
+            boardMode === 'video' ? 'aspect-video w-full max-h-full mx-auto' : 
+            boardMode === 'square' ? 'aspect-square h-full max-w-full mx-auto' : 
+            'w-full h-full'
+          }`}
           style={{ 
             gridTemplateColumns: `repeat(${catsCount}, 1fr)`,
             gridTemplateRows: `auto repeat(${maxQuestionsPerRow}, 1fr)`,
-            transform: `scale(${boardScale})`
+            zoom: boardScale
           }}
         >
           {/* Headers */}
           {gridCategories.map((cat) => (
               <div 
                 key={cat.id} 
-                className="flex items-center justify-center rounded-xl border border-white/10 backdrop-blur-sm overflow-hidden h-16 sm:h-20 lg:h-24"
+                className="flex items-center justify-center rounded-xl border border-white/10 backdrop-blur-sm overflow-hidden h-[min(6rem,15cqi)]"
                 style={{ background: 'var(--color-header-bg)', color: 'var(--color-header-text)' }}
               >
                 <SmartHeader text={cat.name} />
@@ -671,7 +676,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     }}
                   >
                     {!q.isAnswered && <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />}
-                    <span className={`font-extrabold text-3xl sm:text-4xl lg:text-5xl xl:text-6xl tracking-tight z-10 drop-shadow-md ${q.isAnswered ? 'opacity-0' : 'opacity-100'}`}>
+                    <span className={`font-extrabold text-[clamp(1.5rem,6cqmin,6rem)] tracking-tight z-10 drop-shadow-md ${q.isAnswered ? 'opacity-0' : 'opacity-100'}`}>
                       {q.points}
                     </span>
                   </button>
@@ -815,17 +820,6 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     </span>
                   )}
                 </motion.div>
-                
-                {displayStage !== 'answer' && displayStage !== 'question' && (
-                  <div className="mt-16 flex flex-col items-center gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
-                    <div className="px-6 py-2 border border-white/20 rounded-xl bg-white/5 backdrop-blur-md font-mono text-sm tracking-widest font-bold shadow-[0_4px_0_rgba(255,255,255,0.1)] group-hover:shadow-[0_2px_0_rgba(255,255,255,0.1)] group-hover:translate-y-[2px] transition-all">
-                      SPACE
-                    </div>
-                    <p className="text-white/50 uppercase tracking-[0.2em] text-xs font-bold">
-                      Reveal {displayStage === 'bonus_intro' ? 'Question' : 'Answer'}
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
 
