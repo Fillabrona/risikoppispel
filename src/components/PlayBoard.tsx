@@ -692,7 +692,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
         {gameState.players.map((player, idx) => (
           <div 
             key={player.id}
-            className="flex-1 max-w-sm flex flex-col items-center justify-center bg-black/60 border border-white/10 rounded-2xl p-4 text-white relative group overflow-hidden transition-all backdrop-blur-md"
+            className="flex-1 max-w-sm flex flex-col items-center justify-center bg-black/60 border border-white/10 rounded-2xl p-0 text-white relative group overflow-hidden transition-all backdrop-blur-md"
           >
             {/* Background Avatar Layer */}
             <div className="absolute inset-0 pointer-events-none opacity-40 group-hover:opacity-20 transition-opacity mix-blend-lighten overflow-hidden rounded-2xl">
