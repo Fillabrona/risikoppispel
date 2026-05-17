@@ -688,7 +688,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       </div>
 
       {/* Players Scoreboard Area */}
-      <div className="h-auto min-h-[140px] px-6 py-6 flex gap-4 overflow-x-auto no-scrollbar items-end justify-center z-10">
+      <div className="h-auto px-2 py-2 flex gap-4 overflow-x-auto no-scrollbar items-end justify-center z-10">
         {gameState.players.map((player, idx) => (
           <div 
             key={player.id}
