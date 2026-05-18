@@ -146,13 +146,14 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
   }, [gameId, playSound]);
 
   useEffect(() => {
-    if (activeQuestion && hostParams?.skipVotes && gameState.players.length > 0) {
+    // Only check skip votes if the DB is in sync with the current question
+    if (activeQuestion && hostParams?.activeQuestion?.id === activeQuestion.question.id && hostParams?.skipVotes && gameState.players.length > 0) {
       if (hostParams.skipVotes.length >= gameState.players.length) {
         playSound('click');
         closeQuestion();
       }
     }
-  }, [hostParams?.skipVotes, gameState.players.length, activeQuestion]);
+  }, [hostParams?.skipVotes, hostParams?.activeQuestion?.id, gameState.players.length, activeQuestion]);
 
   const allAnswered = gameState.categories.length > 0 && gameState.categories.every(cat => cat.questions.length > 0 && cat.questions.every(q => q.isAnswered));
 
@@ -582,23 +583,29 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="bg-emerald-600 rounded-[2rem] p-3 sm:p-5 flex flex-row items-center gap-4 sm:gap-6 border-4 border-white/20 w-fit max-w-[95vw] shadow-2xl backdrop-blur-md"
+                    className="flex flex-col items-center gap-3 w-fit z-[100]"
                   >
-                    <div className="flex items-center gap-3 sm:gap-5 shrink-0 pl-1 sm:pl-2">
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-xl sm:rounded-2xl overflow-hidden bg-black/20 border-2 border-white/20">
+                    {/* Compact Indicator */}
+                    <div className="bg-emerald-600 rounded-2xl p-2 flex items-center gap-3 border-2 border-white/20 shadow-xl backdrop-blur-md min-h-[80px] min-w-[140px] justify-center px-4">
+                      <div className="w-10 h-10 rounded-xl overflow-hidden bg-black/20 border border-white/20 shrink-0">
                         <img 
                           src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
                           alt="" 
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="flex flex-col text-white max-w-[150px] sm:max-w-[300px] lg:max-w-[400px]">
-                        <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[10px] sm:text-[12px] lg:text-[14px] leading-tight">First to Buzz</span>
-                        <span className="text-2xl sm:text-3xl lg:text-5xl font-black tracking-tight truncate leading-none mt-1">{hostParams.firstBuzz.name}</span>
+                      <div className="flex flex-col text-white max-w-[100px]">
+                        <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[8px] leading-tight">Buzzed</span>
+                        <span className="text-lg font-black tracking-tight truncate leading-none mt-0.5">{hostParams.firstBuzz.name}</span>
                       </div>
                     </div>
                     
-                    <div className="flex gap-2 sm:gap-3 shrink-0">
+                    {/* Float Actions Below */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex gap-2 shrink-0 bg-black/40 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-2xl pointer-events-auto"
+                    >
                        <button
                          onClick={() => {
                            if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
@@ -609,7 +616,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                            }, 100);
                          }}
-                         className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-4 px-6 sm:px-10 rounded-2xl transition-all text-sm sm:text-base uppercase tracking-wider whitespace-nowrap shadow-none"
+                         className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-2 px-4 rounded-xl transition-all text-[10px] uppercase tracking-wider whitespace-nowrap shadow-none"
                        >
                          Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
                        </button>
@@ -623,7 +630,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                            }, 100);
                          }}
-                         className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-4 px-6 sm:px-8 rounded-2xl transition-all text-sm sm:text-base uppercase tracking-wider shadow-none"
+                         className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-2 px-3 rounded-xl transition-all text-[10px] uppercase tracking-wider shadow-none"
                        >
                          WRONG
                        </button>
@@ -638,11 +645,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong, manuallySkipped: true }, { merge: true });
                            }
                          }}
-                         className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-4 px-6 sm:px-8 rounded-2xl transition-all text-sm sm:text-base uppercase tracking-wider shadow-none"
+                         className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-2 px-3 rounded-xl transition-all text-[10px] uppercase tracking-wider shadow-none"
                        >
                          Skip
                        </button>
-                    </div>
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>

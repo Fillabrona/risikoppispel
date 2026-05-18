@@ -171,11 +171,20 @@ export default function BuzzerView() {
       deleteDoc(pRef).catch(() => {});
     };
 
+    const handleFSChange = () => {
+      if (!document.fullscreenElement && joined && !isManualExit.current) {
+        setKickReason("You must stay in fullscreen mode to play.");
+        setJoined(false);
+      }
+    };
+
     window.addEventListener('beforeunload', cleanup);
+    document.addEventListener('fullscreenchange', handleFSChange);
     return () => {
       unsub();
       unsubParts();
       window.removeEventListener('beforeunload', cleanup);
+      document.removeEventListener('fullscreenchange', handleFSChange);
     };
   }, [gameId, participantId, joined, myScore, playSound]);
 
@@ -655,7 +664,8 @@ export default function BuzzerView() {
   const iWonBuzz = gameStatus?.firstBuzz?.participantId === participantId;
   const someoneElseWon = gameStatus?.firstBuzz && gameStatus.firstBuzz.participantId !== participantId;
   const isPendingBuzz = localHasClicked && !gameStatus?.firstBuzz;
-  const isSkipped = !!gameStatus?.manuallySkipped;
+  const isSkipThresholdMet = gameStatus?.skipVotes && liveParticipants.length > 0 && gameStatus.skipVotes.length >= liveParticipants.length;
+  const isSkipped = !!gameStatus?.manuallySkipped || isSkipThresholdMet;
 
   const buzzerColor = getBuzzerColor(participantId);
 
@@ -681,7 +691,7 @@ export default function BuzzerView() {
   return (
     <div 
       onClick={handleFullscreenRequest}
-      className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 select-none touch-manipulation relative"
+      className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 pt-safe pb-safe px-safe select-none touch-manipulation relative overflow-hidden"
     >
       <AnimatePresence mode="popLayout">
         {scoreNotification && (
@@ -731,7 +741,12 @@ export default function BuzzerView() {
         </div>
       </div>
 
-      <motion.div layout className="flex-1 flex flex-col items-center justify-center w-full">
+      <motion.div 
+        layout 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex-1 flex flex-col items-center justify-center w-full"
+      >
         <div className="relative group">
           {/* Visual indicator of "can buzz" state without outer glow */}
           <button
@@ -766,8 +781,8 @@ export default function BuzzerView() {
           {gameStatus?.activeQuestion && !hasVotedSkip && (
             <motion.button 
               layout
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0, height: 0, margin: 0, padding: 0 }}
               onClick={handleVoteSkip}
               className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm uppercase tracking-widest border border-white/10 overflow-hidden"
