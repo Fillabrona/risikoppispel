@@ -45,7 +45,7 @@ const TypewriterText = ({ text, onComplete }: { text: string; onComplete?: () =>
 
 const SmartHeader = ({ text }: { text: string }) => {
   return (
-    <div className="w-full h-full flex items-center justify-center py-2 px-1 text-center" style={{ containerType: 'inline-size' }}>
+    <div className="w-full h-full flex items-center justify-center p-1 text-center" style={{ containerType: 'inline-size' }}>
       <h2 
         className="font-black uppercase tracking-tight leading-[1.05] break-words text-balance max-w-full drop-shadow-sm"
         style={{
@@ -669,7 +669,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     onMouseEnter={() => playSound('click')}
                     onClick={() => openQuestion(cat.id, q)}
                     disabled={q.isAnswered}
-                    className={`relative flex items-center justify-center p-1 ${maxQuestionsPerRow > 5 || catsCount > 5 ? 'rounded-lg' : 'rounded-xl'} transition-colors duration-200 outline-none focus-visible:ring-4 focus-visible:ring-white/50 group overflow-hidden border border-white/10`}
+                    className={`relative flex items-center justify-center p-0 ${maxQuestionsPerRow > 5 || catsCount > 5 ? 'rounded-md' : 'rounded-lg'} transition-colors duration-200 outline-none focus-visible:ring-4 focus-visible:ring-white/50 group overflow-hidden border border-white/10`}
                     style={{ 
                       containerType: 'size',
                       background: q.isAnswered ? 'var(--color-cell-bg-answered)' : 'var(--color-cell-bg)',
@@ -678,7 +678,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     }}
                   >
                     {!q.isAnswered && <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />}
-                    <span className={`font-extrabold text-[clamp(0.75rem,50cqmin,6rem)] tracking-tight z-10 drop-shadow-md leading-none ${q.isAnswered ? 'opacity-0' : 'opacity-100'}`}>
+                    <span className={`font-extrabold text-[clamp(0.75rem,75cqmin,10rem)] tracking-tight z-10 drop-shadow-md leading-none ${q.isAnswered ? 'opacity-0' : 'opacity-100'}`}>
                       {q.points}
                     </span>
                   </button>
