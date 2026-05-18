@@ -583,29 +583,23 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="flex flex-col items-center gap-3 w-fit z-[100]"
+                    className="bg-emerald-600 rounded-[3rem] p-4 sm:p-6 lg:p-8 flex flex-row items-center gap-6 sm:gap-10 border-[6px] border-white/20 w-fit max-w-[95vw] shadow-2xl backdrop-blur-md"
                   >
-                    {/* Compact Indicator */}
-                    <div className="bg-emerald-600 rounded-2xl p-2 flex items-center gap-3 border-2 border-white/20 shadow-xl backdrop-blur-md min-h-[80px] min-w-[140px] justify-center px-4">
-                      <div className="w-10 h-10 rounded-xl overflow-hidden bg-black/20 border border-white/20 shrink-0">
+                    <div className="flex items-center gap-4 sm:gap-6 shrink-0 pl-1 sm:pl-2">
+                      <div className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 rounded-2xl overflow-hidden bg-black/20 border-2 border-white/20">
                         <img 
                           src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
                           alt="" 
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="flex flex-col text-white max-w-[100px]">
-                        <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[8px] leading-tight">Buzzed</span>
-                        <span className="text-lg font-black tracking-tight truncate leading-none mt-0.5">{hostParams.firstBuzz.name}</span>
+                      <div className="flex flex-col text-white max-w-[200px] sm:max-w-[400px] lg:max-w-[500px]">
+                        <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[11px] sm:text-[14px] lg:text-[16px]">First to Buzz</span>
+                        <span className="text-3xl sm:text-5xl lg:text-7xl font-black tracking-tight truncate">{hostParams.firstBuzz.name}</span>
                       </div>
                     </div>
                     
-                    {/* Float Actions Below */}
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex gap-2 shrink-0 bg-black/40 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-2xl pointer-events-auto"
-                    >
+                    <div className="flex gap-2 sm:gap-3 shrink-0">
                        <button
                          onClick={() => {
                            if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
@@ -616,7 +610,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                            }, 100);
                          }}
-                         className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-2 px-4 rounded-xl transition-all text-[10px] uppercase tracking-wider whitespace-nowrap shadow-none"
+                         className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-4 px-6 sm:px-10 rounded-2xl transition-all text-sm sm:text-base uppercase tracking-wider whitespace-nowrap shadow-none"
                        >
                          Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
                        </button>
@@ -630,7 +624,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                            }, 100);
                          }}
-                         className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-2 px-3 rounded-xl transition-all text-[10px] uppercase tracking-wider shadow-none"
+                         className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-4 px-6 sm:px-8 rounded-2xl transition-all text-sm sm:text-base uppercase tracking-wider shadow-none"
                        >
                          WRONG
                        </button>
@@ -645,11 +639,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong, manuallySkipped: true }, { merge: true });
                            }
                          }}
-                         className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-2 px-3 rounded-xl transition-all text-[10px] uppercase tracking-wider shadow-none"
+                         className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-4 px-6 sm:px-8 rounded-2xl transition-all text-sm sm:text-base uppercase tracking-wider shadow-none"
                        >
                          Skip
                        </button>
-                    </motion.div>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

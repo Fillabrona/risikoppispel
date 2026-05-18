@@ -195,8 +195,8 @@ export default function BuzzerView() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         
-        // Reset localHasClicked if question is cleared, or if someone else buzzed
-        if (!data.activeQuestion || (data.firstBuzz && data.firstBuzz.participantId !== participantId)) {
+        // Reset localHasClicked if question is cleared, or if someone else buzzed, or if buzzer becomes free again
+        if (!data.activeQuestion || !data.firstBuzz || data.firstBuzz.participantId !== participantId) {
           setLocalHasClicked(false);
         }
 
@@ -388,6 +388,8 @@ export default function BuzzerView() {
 
   const handleJoin = async (overrideName?: string, overrideVoice?: string) => {
     if (isJoining) return;
+    
+    setKickReason(null);
     
     try {
       if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
@@ -743,8 +745,9 @@ export default function BuzzerView() {
 
       <motion.div 
         layout 
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 80 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
         className="flex-1 flex flex-col items-center justify-center w-full"
       >
         <div className="relative group">
@@ -778,12 +781,13 @@ export default function BuzzerView() {
       {/* Footer Info & Actions */}
       <motion.div layout className="w-full max-w-sm flex flex-col gap-3 py-4">
         <AnimatePresence>
-          {gameStatus?.activeQuestion && !hasVotedSkip && (
+          {gameStatus?.activeQuestion && !hasVotedSkip && !wasTimedOut && (
             <motion.button 
               layout
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, height: 0, margin: 0, padding: 0 }}
+              transition={{ duration: 0.3 }}
               onClick={handleVoteSkip}
               className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm uppercase tracking-widest border border-white/10 overflow-hidden"
             >
