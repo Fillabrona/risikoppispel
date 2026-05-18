@@ -107,9 +107,9 @@ function HostView() {
 
   const [boardSongIdx, setBoardSongIdx] = useState(0);
   const boardSongs = [
-    "https://fillabrona.github.io/risikoppispel/music/game1.mp3",
-    "https://fillabrona.github.io/risikoppispel/music/game2.mp3",
-    "https://fillabrona.github.io/risikoppispel/music/game3.mp3"
+    "/music/game1.mp3",
+    "/music/game2.mp3",
+    "/music/game3.mp3"
   ];
 
   const audioRefs = {
@@ -198,12 +198,12 @@ function HostView() {
 
   return (
     <div className="antialiased min-h-screen bg-[#0f172a] selection:bg-cyan-500/30">
-      <audio ref={audioRefs.editor} src="https://fillabrona.github.io/risikoppispel/music/editor.mp3" loop muted={isMuted} className="hidden" />
-      <audio ref={audioRefs.victory} src="https://fillabrona.github.io/risikoppispel/music/victory.mp3" loop muted={isMuted} className="hidden" />
-      <audio ref={audioRefs.question} src="https://fillabrona.github.io/risikoppispel/music/question.mp3" loop muted={isMuted} className="hidden" />
-      <audio ref={audioRefs.board1} src="https://fillabrona.github.io/risikoppispel/music/game1.mp3" muted={isMuted} className="hidden" />
-      <audio ref={audioRefs.board2} src="https://fillabrona.github.io/risikoppispel/music/game2.mp3" muted={isMuted} className="hidden" />
-      <audio ref={audioRefs.board3} src="https://fillabrona.github.io/risikoppispel/music/game3.mp3" muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.editor} src="/music/editor.mp3" loop muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.victory} src="/music/victory.mp3" loop muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.question} src="/music/question.mp3" loop muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.board1} src="/music/game1.mp3" muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.board2} src="/music/game2.mp3" muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.board3} src="/music/game3.mp3" muted={isMuted} className="hidden" />
 
       {!audioUnlocked && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md">

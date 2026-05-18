@@ -919,81 +919,99 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
             animate={{ opacity: 1 }}
             className="fixed inset-0 z-[60] flex items-center justify-center p-8 backdrop-blur-3xl bg-slate-900/90 text-white"
           >
-            <Confetti 
-              width={window.innerWidth}
-              height={window.innerHeight}
-              numberOfPieces={600} 
-              recycle={false} 
-              gravity={0.15}
-            />
-            <div className="w-full max-w-5xl flex flex-col items-center min-h-0 py-8">
-              <h1 className="text-5xl sm:text-8xl font-black mb-8 sm:mb-16 text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-yellow-600 drop-shadow-sm uppercase tracking-widest text-center shrink-0">
+            <div className="w-full max-w-5xl flex flex-col items-center min-h-0 py-4 sm:py-8">
+              <h1 className="text-5xl sm:text-8xl font-black mb-8 sm:mb-12 text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-yellow-600 drop-shadow-sm uppercase tracking-widest text-center shrink-0">
                 Victory
               </h1>
-              <div className="flex flex-row items-end justify-center gap-3 sm:gap-6 w-full max-h-[50vh] min-h-[200px]">
-                {gameState.players
-                  .slice()
-                  .sort((a, b) => b.score - a.score)
-                  .slice(0, 3)
-                  .map((player, index) => {
-                    const isFirst = index === 0;
-                    const isSecond = index === 1;
-                    const isThird = index === 2;
-                    
-                    let heightClass = "h-[60%]";
-                    if (isFirst) heightClass = "h-[90%]";
-                    if (isThird) heightClass = "h-[45%]";
+              
+              <div className="relative w-full h-[320px] sm:h-[480px] flex items-end justify-center mb-1 sm:mb-3">
+                {/* Podium containers */}
+                <div className="absolute inset-0 flex items-end justify-center px-4 overflow-visible">
+                  {gameState.players
+                    .slice()
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 3)
+                    .map((player, index) => {
+                      const isFirst = index === 0;
+                      const isSecond = index === 1;
+                      const isThird = index === 2;
+                      
+                      const podiumImg = isFirst 
+                        ? "https://i.ibb.co/Pzj123ZV/1st.png"
+                        : isSecond 
+                        ? "https://i.ibb.co/Dg6XZBQS/2nd.png"
+                        : "https://i.ibb.co/Kz2ZkHXt/3rd.png";
  
-                    let colorClass = "bg-gradient-to-t from-yellow-400 to-amber-600";
-                    if (isSecond) colorClass = "bg-gradient-to-t from-slate-300 to-slate-500 scale-95 origin-bottom";
-                    if (isThird) colorClass = "bg-gradient-to-t from-orange-500 to-red-700 scale-90 origin-bottom";
-                    
-                    // Display order: 2nd, 1st, 3rd
-                    let orderClass = "order-2";
-                    if (isSecond) orderClass = "order-1";
-                    if (isThird) orderClass = "order-3";
- 
-                    return (
-                      <motion.div
-                        key={player.id}
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.2 + 0.5, type: 'spring' }}
-                        className={`relative flex flex-col items-center justify-end w-1/4 max-w-[200px] min-w-[80px] ${heightClass} ${colorClass} rounded-2xl sm:rounded-3xl overflow-visible pt-8 ${orderClass} mb-4`}
-                      >
-                        <div className="absolute -top-10 sm:-top-16 mb-2 sm:mb-4">
-                          <div className={`rounded-xl sm:rounded-2xl border-2 border-slate-700 bg-slate-800 overflow-hidden ${isFirst ? 'w-20 h-20 sm:w-32 sm:h-32' : isSecond ? 'w-16 h-16 sm:w-24 sm:h-24' : 'w-14 h-14 sm:w-20 sm:h-20'}`}>
-                            <img 
-                              src={`https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(player.name)}`} 
-                              alt="" 
-                              className="w-full h-full object-cover"
-                            />
+                      let orderZ = "z-50"; // 1st
+                      let xPos = "left-1/2 -translate-x-1/2";
+                      let yPos = "bottom-12 sm:bottom-25";
+                      let scale = "scale-[1.1] sm:scale-[1.25] z-50";
+                      
+                      if (isSecond) {
+                        orderZ = "z-30";
+                        xPos = "left-1/2 -translate-x-[120%] sm:-translate-x-[115%]";
+                        yPos = "bottom-8 sm:bottom-16";
+                        scale = "scale-75 sm:scale-95 z-30";
+                      }
+                      if (isThird) {
+                        orderZ = "z-20";
+                        xPos = "left-1/2 translate-x-[20%] sm:translate-x-[15%]";
+                        yPos = "bottom-8 sm:bottom-16";
+                        scale = "scale-75 sm:scale-95 z-20";
+                      }
+
+                      return (
+                        <motion.div
+                          key={player.id}
+                          initial={{ opacity: 0, y: 100 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.2 + 0.5, type: 'spring', damping: 20 }}
+                          className={`absolute ${xPos} ${yPos} ${orderZ} ${scale} flex flex-col items-center w-1/3 max-w-[280px] min-w-[120px]`}
+                        >
+                          {/* Player Info Above Podium */}
+                          <div className={`flex flex-col items-center w-full ${isFirst ? 'mb-10 sm:mb-0' : 'mb-0 sm:mb-0'} ${isThird ? 'translate-y-[18px] sm:translate-y-[32px]' : ''}`}>
+                            <div className={`relative mb-1 sm:mb-2 flex items-center justify-center ${isThird ? 'translate-y-[6px] sm:translate-y-[8px]' : ''}`}>
+                              <div className={`rounded-xl sm:rounded-2xl border-4 border-slate-700 bg-slate-800 shadow-2xl ${isFirst ? 'w-24 h-24 sm:w-32 sm:h-32' : 'w-16 h-16 sm:w-20 sm:h-20'} overflow-hidden flex items-center justify-center`}>
+                                <img 
+                                  src={`https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(player.name)}`} 
+                                  alt="" 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              {isFirst && (
+                                <div className="absolute -top-6 -right-8 sm:-top-8 sm:-right-8 transform rotate-12 drop-shadow-2xl z-[60]">
+                                  <Trophy className="w-12 h-12 sm:w-20 sm:h-20 fill-yellow-400 text-yellow-600" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-center px-1">
+                              <div className={`font-black uppercase tracking-wider text-white truncate w-full max-w-[100px] sm:max-w-none drop-shadow-md ${isFirst ? 'text-lg sm:text-2xl' : 'text-xs sm:text-lg'} ${isSecond ? '-translate-y-[1px]' : isThird ? 'translate-y-[3px]' : ''}`}>
+                                {player.name}
+                              </div>
+                            </div>
                           </div>
-                          {isFirst && (
-                            <div className="absolute -top-4 sm:-top-6 -right-3 sm:-right-5 transform rotate-12 drop-shadow-md">
-                              <Trophy className="w-8 h-8 sm:w-12 sm:h-12 fill-yellow-400 text-yellow-600" />
-                            </div>
-                          )}
-                          {isSecond && (
-                            <div className="absolute -top-3 sm:-top-5 -right-2 sm:-right-4 transform rotate-12 drop-shadow-md">
-                              <Medal className="w-6 h-6 sm:w-10 sm:h-10 fill-slate-300 text-slate-500" />
-                            </div>
-                          )}
-                          {isThird && (
-                            <div className="absolute -top-2 sm:-top-4 -right-2 sm:-right-3 transform rotate-12 drop-shadow-md">
-                              <Award className="w-5 h-5 sm:w-8 sm:h-8 fill-orange-400 text-orange-600" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-col items-center pb-3 sm:pb-6 text-center w-full px-1 sm:px-2">
-                          <div className={`font-extrabold uppercase tracking-widest text-slate-950 mb-1 line-clamp-1 w-full truncate ${isFirst ? 'text-xs sm:text-xl' : 'text-[10px] sm:text-lg'}`}>{player.name}</div>
-                          <div className={`font-black text-white drop-shadow-md ${isFirst ? 'text-xl sm:text-4xl' : 'text-lg sm:text-3xl'}`}>{player.score}</div>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
+ 
+                          {/* Podium Image with Score on top of base */}
+                          <div className="w-full relative px-2">
+                             <img 
+                               src={podiumImg} 
+                               alt={`${index + 1} place podium`}
+                               className={`w-full h-auto drop-shadow-2xl ${isThird ? 'scale-[0.85] origin-bottom' : ''}`}
+                             />
+                             {/* Integrated Score - Positioned on the white column/pillar */}
+                             <div className={`absolute inset-0 flex flex-col items-center justify-center ${isFirst ? 'pt-0' : 'pt-0'} pointer-events-none`}>
+                                <div className={`font-black text-[#e3a92d] [text-shadow:_-1px_-1px_0_#854d0e,1px_-1px_0_#854d0e,-1px_1px_0_#854d0e,1px_1px_0_#854d0e] ${isFirst ? 'text-lg sm:text-3xl -mt-4 sm:-mt-7' : isSecond ? 'text-lg sm:text-3xl -mt-3 sm:-mt-4' : 'text-lg sm:text-3xl mt-[6px] sm:mt-[10px]'}`}>
+                                  {player.score}
+                                </div>
+                             </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                </div>
               </div>
-              <div className="flex flex-col items-center gap-4 sm:gap-6 mt-8 sm:mt-16 z-20 shrink-0">
+
+              <div className="flex flex-col items-center gap-4 sm:gap-6 mt-1 sm:mt-1 z-20 shrink-0">
                 <button 
                   onClick={async () => {
                     playSound('click');
@@ -1029,6 +1047,15 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                 </button>
               </div>
             </div>
+
+            <Confetti 
+              width={window.innerWidth}
+              height={window.innerHeight}
+              numberOfPieces={400} 
+              recycle={false} 
+              gravity={0.15}
+              style={{ zIndex: 100 }}
+            />
           </motion.div>
         )}
       </AnimatePresence>
