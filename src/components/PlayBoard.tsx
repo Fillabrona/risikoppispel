@@ -45,13 +45,14 @@ const TypewriterText = ({ text, onComplete }: { text: string; onComplete?: () =>
 
 const SmartHeader = ({ text }: { text: string }) => {
   return (
-    <div className="w-full h-full flex items-center justify-center p-3 sm:p-4 text-center @container">
+    <div className="w-full h-full flex items-center justify-center py-2 px-1 text-center" style={{ containerType: 'inline-size' }}>
       <h2 
-        className="font-black uppercase tracking-tight leading-tight break-words max-w-full drop-shadow-sm"
+        className="font-black uppercase tracking-tight leading-[1.05] break-words text-balance max-w-full drop-shadow-sm"
         style={{
-          fontSize: text.length < 10 ? 'clamp(0.8rem, 16cqi, 2rem)' :
-                    text.length < 18 ? 'clamp(0.7rem, 13cqi, 1.5rem)' :
-                                       'clamp(0.6rem, 10cqi, 1.25rem)'
+          fontSize: text.length <= 8 ? 'clamp(1rem, 20cqi, 3rem)' :
+                    text.length <= 16 ? 'clamp(0.875rem, 15cqi, 2.5rem)' :
+                    text.length <= 25 ? 'clamp(0.75rem, 12cqi, 2rem)' :
+                                        'clamp(0.65rem, 10cqi, 1.75rem)'
         }}
       >
         {text}
@@ -632,7 +633,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
       {/* Main Board Area */}
       <div className="flex-1 px-4 sm:px-6 lg:px-8 flex items-center justify-center min-h-0 z-10 mb-2 mt-4 relative overflow-hidden @container">
         <div 
-          className={`grid gap-2 sm:gap-3 transition-all duration-300 origin-center ${
+          className={`grid ${maxQuestionsPerRow > 5 || catsCount > 5 ? 'gap-1 sm:gap-1.5' : 'gap-2 sm:gap-3'} transition-all duration-300 origin-center ${
             boardMode === 'video' ? 'aspect-video w-full max-h-full mx-auto' : 
             boardMode === 'square' ? 'aspect-square h-full max-w-full mx-auto' : 
             'w-full h-full'
@@ -647,7 +648,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           {gridCategories.map((cat) => (
               <div 
                 key={cat.id} 
-                className="flex items-center justify-center rounded-xl border border-white/10 backdrop-blur-sm overflow-hidden h-[min(6rem,15cqi)]"
+                className={`flex items-center justify-center ${maxQuestionsPerRow > 5 || catsCount > 5 ? 'rounded-lg' : 'rounded-xl'} border border-white/10 backdrop-blur-sm overflow-hidden h-full min-h-[3rem] self-stretch`}
                 style={{ background: 'var(--color-header-bg)', color: 'var(--color-header-text)' }}
               >
                 <SmartHeader text={cat.name} />
@@ -668,15 +669,16 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     onMouseEnter={() => playSound('click')}
                     onClick={() => openQuestion(cat.id, q)}
                     disabled={q.isAnswered}
-                    className="relative flex items-center justify-center p-2 rounded-xl transition-colors duration-200 outline-none focus-visible:ring-4 focus-visible:ring-white/50 group overflow-hidden border border-white/10"
+                    className={`relative flex items-center justify-center p-1 ${maxQuestionsPerRow > 5 || catsCount > 5 ? 'rounded-lg' : 'rounded-xl'} transition-colors duration-200 outline-none focus-visible:ring-4 focus-visible:ring-white/50 group overflow-hidden border border-white/10`}
                     style={{ 
+                      containerType: 'size',
                       background: q.isAnswered ? 'var(--color-cell-bg-answered)' : 'var(--color-cell-bg)',
                       color: 'var(--color-cell-text)',
                       opacity: q.isAnswered ? 0.3 : 1,
                     }}
                   >
                     {!q.isAnswered && <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />}
-                    <span className={`font-extrabold text-[clamp(1.5rem,6cqmin,6rem)] tracking-tight z-10 drop-shadow-md ${q.isAnswered ? 'opacity-0' : 'opacity-100'}`}>
+                    <span className={`font-extrabold text-[clamp(0.75rem,50cqmin,6rem)] tracking-tight z-10 drop-shadow-md leading-none ${q.isAnswered ? 'opacity-0' : 'opacity-100'}`}>
                       {q.points}
                     </span>
                   </button>

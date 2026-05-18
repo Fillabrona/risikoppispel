@@ -599,7 +599,12 @@ Output ONLY valid JSON, no markdown formatting.
                   </h2>
                   <button
                     onClick={hooks.addCategory}
-                    className="flex items-center space-x-2 text-sm font-bold text-white bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 px-4 py-2 rounded-xl transition-all"
+                    disabled={gameState.categories.length >= 10}
+                    className={`flex items-center space-x-2 text-sm font-bold px-4 py-2 rounded-xl transition-all ${
+                      gameState.categories.length >= 10 
+                        ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-slate-600/30'
+                        : 'bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-white'
+                    }`}
                   >
                     <Plus className="w-4 h-4" />
                     <span>New Category</span>
@@ -644,8 +649,13 @@ Output ONLY valid JSON, no markdown formatting.
                           </button>
                           <button
                             onClick={() => hooks.duplicateCategory(category.id)}
-                            className="text-slate-500 hover:text-blue-400 p-2 hover:bg-blue-500/10 rounded-xl transition-colors"
-                            title="Duplicate Category"
+                            disabled={gameState.categories.length >= 10}
+                            className={`p-2 rounded-xl transition-colors ${
+                              gameState.categories.length >= 10
+                                ? 'text-slate-600 bg-transparent cursor-not-allowed'
+                                : 'text-slate-500 hover:text-blue-400 hover:bg-blue-500/10'
+                            }`}
+                            title={gameState.categories.length >= 10 ? 'Category Limit Reached' : 'Duplicate Category'}
                           >
                             <Copy className="w-5 h-5" />
                           </button>
@@ -767,13 +777,23 @@ Output ONLY valid JSON, no markdown formatting.
                             </div>
                           ))}
                         </div>
-                        <button
-                          onClick={() => hooks.addQuestion(category.id)}
-                          className="mt-6 w-full flex items-center justify-center space-x-2 text-sm font-bold text-slate-300 bg-slate-900 border border-slate-700 border-dashed hover:border-slate-500 hover:text-white px-4 py-4 rounded-xl transition-all"
-                        >
-                          <Plus className="w-5 h-5" />
-                          <span>Add Question to Category</span>
-                        </button>
+                        {(() => {
+                          const normalCount = category.questions.filter(q => !q.isBonus).length;
+                          return (
+                            <button
+                              onClick={() => hooks.addQuestion(category.id)}
+                              disabled={normalCount >= 10}
+                              className={`mt-6 w-full flex items-center justify-center space-x-2 text-sm font-bold px-4 py-4 rounded-xl transition-all ${
+                                normalCount >= 10
+                                  ? 'text-slate-500 bg-slate-900/50 border border-slate-800 border-dashed cursor-not-allowed'
+                                  : 'text-slate-300 bg-slate-900 border border-slate-700 border-dashed hover:border-slate-500 hover:text-white'
+                              }`}
+                            >
+                              <Plus className="w-5 h-5" />
+                              <span>{normalCount >= 10 ? 'Question Limit Reached' : 'Add Question to Category'}</span>
+                            </button>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}
@@ -905,8 +925,12 @@ Output ONLY valid JSON, no markdown formatting.
                       <div>
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">Categories</label>
                         <input type="number" 
+                          max="10"
                           value={aiCategoryCount} 
-                          onChange={e => setAiCategoryCount(e.target.value === '' ? '' : parseInt(e.target.value))}
+                          onChange={e => {
+                            const val = e.target.value === '' ? '' : Math.min(10, parseInt(e.target.value));
+                            setAiCategoryCount(val);
+                          }}
                           placeholder="e.g. 5"
                           className="w-full px-4 py-3 bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-xl text-white font-bold text-lg outline-none" 
                         />
@@ -914,8 +938,12 @@ Output ONLY valid JSON, no markdown formatting.
                       <div>
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">Questions per category</label>
                         <input type="number" 
+                          max="10"
                           value={aiQuestionsPerCat} 
-                          onChange={e => setAiQuestionsPerCat(e.target.value === '' ? '' : parseInt(e.target.value))}
+                          onChange={e => {
+                            const val = e.target.value === '' ? '' : Math.min(10, parseInt(e.target.value));
+                            setAiQuestionsPerCat(val);
+                          }}
                           placeholder="e.g. 5"
                           className="w-full px-4 py-3 bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-xl text-white font-bold text-lg outline-none" 
                         />

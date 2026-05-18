@@ -90,8 +90,9 @@ export function useGameState() {
   const addQuestion = (catId: string) => {
     setGameState((s) => ({
       ...s,
-      categories: s.categories.map((c) =>
-        c.id === catId
+      categories: s.categories.map((c) => {
+        const normalCount = c.questions.filter(q => !q.isBonus).length;
+        return c.id === catId && normalCount < 10
           ? {
               ...c,
               questions: [
@@ -106,7 +107,7 @@ export function useGameState() {
               ],
             }
           : c
-      ),
+      }),
     }));
   };
 
@@ -140,23 +141,26 @@ export function useGameState() {
   };
 
   const addCategory = () => {
-    setGameState((s) => ({
-      ...s,
-      categories: [
-        ...s.categories,
-        {
-          id: `cat-${Date.now()}`,
-          name: 'New Category',
-          questions: Array.from({ length: 5 }).map((_, qIdx) => ({
-            id: `q-${Date.now()}-${qIdx}`,
-            questionText: 'New Question',
-            answerText: 'Answer',
-            points: (qIdx + 1) * 100,
-            isAnswered: false,
-          })),
-        },
-      ],
-    }));
+    setGameState((s) => {
+      if (s.categories.length >= 10) return s;
+      return {
+        ...s,
+        categories: [
+          ...s.categories,
+          {
+            id: `cat-${Date.now()}`,
+            name: 'New Category',
+            questions: Array.from({ length: 5 }).map((_, qIdx) => ({
+              id: `q-${Date.now()}-${qIdx}`,
+              questionText: 'New Question',
+              answerText: 'Answer',
+              points: (qIdx + 1) * 100,
+              isAnswered: false,
+            })),
+          },
+        ],
+      };
+    });
   };
 
   const removeCategory = (catId: string) => {
@@ -168,6 +172,7 @@ export function useGameState() {
 
   const duplicateCategory = (catId: string) => {
     setGameState((s) => {
+      if (s.categories.length >= 10) return s;
       const catToCopy = s.categories.find(c => c.id === catId);
       if (!catToCopy) return s;
       
