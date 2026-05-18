@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, auth, loginAnonymously } from '../lib/firebase';
 import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp, arrayUnion } from 'firebase/firestore';
-import { Mic, Square, Loader2, Trophy, Minus, Plus } from 'lucide-react';
+import { Mic, Square, Loader2, Trophy, X, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSound } from '../hooks/useSound';
@@ -379,6 +379,13 @@ export default function BuzzerView() {
 
   const handleJoin = async (overrideName?: string, overrideVoice?: string) => {
     if (isJoining) return;
+    
+    try {
+      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        await document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } catch(e) {}
+    
     const n = overrideName || name;
     const v = overrideVoice || voiceUri;
 
@@ -642,7 +649,8 @@ export default function BuzzerView() {
   const wasWrong = gameStatus?.wrongBuzzes?.includes(participantId);
   const wasTimedOut = gameStatus?.timedOutPlayers?.includes(participantId);
   const isAnswerShown = gameStatus?.showAnswer;
-  const canBuzz = isBuzzerActive && !expired && !wasWrong && !isAnswerShown && !localHasClicked;
+  const hasVotedSkip = gameStatus?.skipVotes?.includes(participantId);
+  const canBuzz = isBuzzerActive && !expired && !wasWrong && !isAnswerShown && !localHasClicked && !hasVotedSkip;
   
   const iWonBuzz = gameStatus?.firstBuzz?.participantId === participantId;
   const someoneElseWon = gameStatus?.firstBuzz && gameStatus.firstBuzz.participantId !== participantId;
@@ -662,10 +670,19 @@ export default function BuzzerView() {
     }
   };
 
-  const hasVotedSkip = gameStatus?.skipVotes?.includes(participantId);
+  const handleFullscreenRequest = () => {
+    try {
+      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } catch(e) {}
+  };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 select-none touch-manipulation relative">
+    <div 
+      onClick={handleFullscreenRequest}
+      className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 select-none touch-manipulation relative"
+    >
       <AnimatePresence mode="popLayout">
         {scoreNotification && (
           <motion.div
@@ -714,7 +731,7 @@ export default function BuzzerView() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center w-full">
+      <motion.div layout className="flex-1 flex flex-col items-center justify-center w-full">
         <div className="relative group">
           {/* Visual indicator of "can buzz" state without outer glow */}
           <button
@@ -736,24 +753,30 @@ export default function BuzzerView() {
           >
             <div className="flex flex-col items-center justify-center">
               <span className={`text-3xl sm:text-4xl text-white font-black tracking-tighter uppercase text-center px-8 leading-tight transition-all ${(!canBuzz && !iWonBuzz && !isPendingBuzz && !isSkipped && gameStatus?.activeQuestion) ? 'opacity-40' : 'opacity-100'}`}>
-                {!gameStatus?.activeQuestion ? 'WAITING...' : iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : wasTimedOut ? 'TIMED OUT (BLOCKED)' : isSkipped ? 'SKIPPED' : wasWrong ? 'WRONG' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : 'WAIT'}
+                {!gameStatus?.activeQuestion ? 'WAITING...' : iWonBuzz ? 'YOUR TURN' : someoneElseWon ? 'TOO SLOW' : wasTimedOut ? 'TIMED OUT (BLOCKED)' : isSkipped ? 'SKIPPED' : wasWrong ? 'WRONG' : isPendingBuzz ? 'BUZZED!' : canBuzz ? 'BUZZ' : hasVotedSkip ? 'VOTED SKIP' : 'WAIT'}
               </span>
             </div>
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Footer Info & Actions */}
-      <div className="w-full max-w-sm flex flex-col gap-3 py-4">
-        {gameStatus?.activeQuestion && !hasVotedSkip && (
-          <button 
-            onClick={handleVoteSkip}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm uppercase tracking-widest border border-white/10"
-          >
-            Vote to Skip Question
-          </button>
-        )}
-        <div className="flex gap-3">
+      <motion.div layout className="w-full max-w-sm flex flex-col gap-3 py-4">
+        <AnimatePresence>
+          {gameStatus?.activeQuestion && !hasVotedSkip && (
+            <motion.button 
+              layout
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, height: 0, margin: 0, padding: 0 }}
+              onClick={handleVoteSkip}
+              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm uppercase tracking-widest border border-white/10 overflow-hidden"
+            >
+              Vote to Skip Question ({gameStatus?.skipVotes?.length || 0}/{liveParticipants.length})
+            </motion.button>
+          )}
+        </AnimatePresence>
+        <motion.div layout className="flex gap-3">
           <button 
             onClick={() => setShowCategories(true)}
             className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest border border-white/5"
@@ -766,8 +789,8 @@ export default function BuzzerView() {
           >
             Leaderboard
           </button>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <AnimatePresence>
         {showCategories && (
@@ -786,7 +809,7 @@ export default function BuzzerView() {
              >
                <div className="flex items-center justify-between p-6 border-b border-white/10">
                  <h3 className="text-xl font-black text-white uppercase tracking-widest">Categories</h3>
-                 <button onClick={() => setShowCategories(false)} className="p-2 text-white/50 hover:text-white bg-white/5 rounded-full"><Minus className="w-5 h-5"/></button>
+                 <button onClick={() => setShowCategories(false)} className="p-2 text-white/50 hover:text-white bg-white/5 rounded-full"><X className="w-5 h-5"/></button>
                </div>
                <div className="p-6 overflow-y-auto space-y-3 pb-safe">
                  {gameStatus?.categories?.map((c: string, i: number) => (
@@ -818,7 +841,7 @@ export default function BuzzerView() {
              >
                <div className="flex items-center justify-between p-6 border-b border-white/10">
                  <h3 className="text-xl font-black text-white uppercase tracking-widest">Live Scores</h3>
-                 <button onClick={() => setShowScores(false)} className="p-2 text-white/50 hover:text-white bg-white/5 rounded-full"><Minus className="w-5 h-5"/></button>
+                 <button onClick={() => setShowScores(false)} className="p-2 text-white/50 hover:text-white bg-white/5 rounded-full"><X className="w-5 h-5"/></button>
                </div>
                <div className="p-6 overflow-y-auto space-y-3 pb-safe">
                  {liveParticipants.map((p: any, i: number) => (

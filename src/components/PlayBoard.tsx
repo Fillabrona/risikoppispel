@@ -320,7 +320,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
 
     if (gameId) {
       const gRef = doc(db, 'games', gameId);
-      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [], timedOutPlayers: [], typingFinished: false, manuallySkipped: false }, { merge: true });
+      await setDoc(gRef, { activeQuestion: null, firstBuzz: null, showAnswer: false, wrongBuzzes: [], timedOutPlayers: [], skipVotes: [], typingFinished: false, manuallySkipped: false }, { merge: true });
     }
   }
 
@@ -582,19 +582,19 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="bg-emerald-600 rounded-[3rem] p-4 sm:p-6 lg:p-8 flex flex-row items-center gap-6 sm:gap-10 border-[6px] border-white/20 w-fit max-w-[95vw] shadow-2xl backdrop-blur-md"
+                    className="bg-emerald-600 rounded-[2rem] p-3 sm:p-5 flex flex-row items-center gap-4 sm:gap-6 border-4 border-white/20 w-fit max-w-[95vw] shadow-2xl backdrop-blur-md"
                   >
-                    <div className="flex items-center gap-4 sm:gap-6 shrink-0 pl-1 sm:pl-2">
-                      <div className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 rounded-2xl overflow-hidden bg-black/20 border-2 border-white/20">
+                    <div className="flex items-center gap-3 sm:gap-5 shrink-0 pl-1 sm:pl-2">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-xl sm:rounded-2xl overflow-hidden bg-black/20 border-2 border-white/20">
                         <img 
                           src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
                           alt="" 
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="flex flex-col text-white max-w-[200px] sm:max-w-[400px] lg:max-w-[500px]">
-                        <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[11px] sm:text-[14px] lg:text-[16px]">First to Buzz</span>
-                        <span className="text-3xl sm:text-5xl lg:text-7xl font-black tracking-tight truncate">{hostParams.firstBuzz.name}</span>
+                      <div className="flex flex-col text-white max-w-[150px] sm:max-w-[300px] lg:max-w-[400px]">
+                        <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[10px] sm:text-[12px] lg:text-[14px] leading-tight">First to Buzz</span>
+                        <span className="text-2xl sm:text-3xl lg:text-5xl font-black tracking-tight truncate leading-none mt-1">{hostParams.firstBuzz.name}</span>
                       </div>
                     </div>
                     
