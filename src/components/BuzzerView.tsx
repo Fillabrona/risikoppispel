@@ -730,7 +730,7 @@ export default function BuzzerView() {
             key={scoreNotification.id}
             initial={{ opacity: 0, y: 30, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -30, scale: 0.9 }}
+            exit={{ opacity: 0, y: 30, scale: 0.9 }}
             transition={{ 
               type: 'spring', 
               damping: 25, 
@@ -773,7 +773,6 @@ export default function BuzzerView() {
       </div>
 
       <motion.div 
-        layout 
         initial={{ opacity: 0, y: 80 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
@@ -808,7 +807,7 @@ export default function BuzzerView() {
       </motion.div>
 
       {/* Footer Info & Actions */}
-      <motion.div layout className="w-full max-w-sm flex flex-col gap-3 py-4">
+      <div className="w-full max-w-sm flex flex-col gap-3 py-4">
         <AnimatePresence>
           {gameStatus?.activeQuestion && !hasVotedSkip && !wasTimedOut && (
             <motion.button 
@@ -823,7 +822,7 @@ export default function BuzzerView() {
             </motion.button>
           )}
         </AnimatePresence>
-        <motion.div layout className="flex gap-3">
+        <div className="flex gap-3">
           <button 
             onClick={() => setShowCategories(true)}
             className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest border border-white/5"
@@ -836,8 +835,8 @@ export default function BuzzerView() {
           >
             Leaderboard
           </button>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
 
       <AnimatePresence>
         {showCategories && (

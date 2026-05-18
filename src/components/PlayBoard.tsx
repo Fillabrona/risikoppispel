@@ -604,23 +604,23 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="bg-emerald-600 rounded-2xl p-2 sm:p-3 flex flex-row items-center gap-4 sm:gap-6 border-4 border-white/20 w-fit max-w-[95vw] shadow-2xl backdrop-blur-md h-[80px]"
+                    className="bg-emerald-600 rounded-2xl p-2 sm:p-2.5 flex flex-row items-center gap-3 sm:gap-4 border-2 border-white/20 w-fit max-w-[95vw] shadow-2xl backdrop-blur-md h-[80px]"
                   >
-                    <div className="flex items-center gap-3 sm:gap-4 shrink-0 pl-1">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden bg-black/20 border border-white/20">
+                    <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 pl-1">
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden bg-black/20 border border-white/20">
                         <img 
                           src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
                           alt="" 
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover" 
                         />
                       </div>
-                      <div className="flex flex-col text-white max-w-[120px] sm:max-w-[200px]">
-                        <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[8px] sm:text-[9px] leading-tight">First to Buzz</span>
-                        <span className="text-lg sm:text-xl font-black tracking-tight truncate leading-none mt-0.5">{hostParams.firstBuzz.name}</span>
+                      <div className="flex flex-col text-white max-w-[100px] sm:max-w-[150px]">
+                        <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[7px] sm:text-[8px] leading-tight">First to Buzz</span>
+                        <span className="text-base sm:text-lg font-black tracking-tight truncate leading-none mt-0.5">{hostParams.firstBuzz.name}</span>
                       </div>
                     </div>
                     
-                    <div className="flex gap-2 shrink-0 border-l border-white/10 pl-3 sm:pl-4">
+                    <div className="flex gap-1.5 sm:gap-2 shrink-0 pl-1 sm:pl-2">
                        <button
                          onClick={() => {
                            if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
@@ -631,7 +631,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                            }, 100);
                          }}
-                         className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black h-10 px-4 sm:px-6 rounded-xl transition-all text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap shadow-none"
+                         className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black h-10 px-3 sm:px-4 rounded-xl transition-all text-[9px] sm:text-xs uppercase tracking-wider whitespace-nowrap shadow-none"
                        >
                          Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
                        </button>
@@ -645,7 +645,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                            }, 100);
                          }}
-                         className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold h-10 px-3 sm:px-4 rounded-xl transition-all text-[10px] sm:text-xs uppercase tracking-wider shadow-none"
+                         className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold h-10 px-2 sm:px-3 rounded-xl transition-all text-[9px] sm:text-xs uppercase tracking-wider shadow-none"
                        >
                          WRONG
                        </button>
@@ -660,7 +660,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong, manuallySkipped: true }, { merge: true });
                            }
                          }}
-                         className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold h-10 px-3 sm:px-4 rounded-xl transition-all text-[10px] sm:text-xs uppercase tracking-wider shadow-none"
+                         className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold h-10 px-2 sm:px-3 rounded-xl transition-all text-[9px] sm:text-xs uppercase tracking-wider shadow-none"
                        >
                          Skip
                        </button>
@@ -926,11 +926,11 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
               recycle={false} 
               gravity={0.15}
             />
-            <div className="max-w-4xl w-full flex flex-col items-center">
-              <h1 className="text-6xl sm:text-8xl font-black mb-16 text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-yellow-600 drop-shadow-sm uppercase tracking-widest text-center">
+            <div className="w-full max-w-5xl flex flex-col items-center min-h-0 py-8">
+              <h1 className="text-5xl sm:text-8xl font-black mb-8 sm:mb-16 text-transparent bg-clip-text bg-gradient-to-br from-amber-200 to-yellow-600 drop-shadow-sm uppercase tracking-widest text-center shrink-0">
                 Victory
               </h1>
-              <div className="flex flex-col sm:flex-row items-end justify-center gap-6 w-full h-[400px]">
+              <div className="flex flex-row items-end justify-center gap-3 sm:gap-6 w-full max-h-[50vh] min-h-[200px]">
                 {gameState.players
                   .slice()
                   .sort((a, b) => b.score - a.score)
@@ -940,10 +940,10 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     const isSecond = index === 1;
                     const isThird = index === 2;
                     
-                    let heightClass = "h-48";
-                    if (isFirst) heightClass = "h-72";
-                    if (isThird) heightClass = "h-32";
-
+                    let heightClass = "h-[60%]";
+                    if (isFirst) heightClass = "h-[90%]";
+                    if (isThird) heightClass = "h-[45%]";
+ 
                     let colorClass = "bg-gradient-to-t from-yellow-400 to-amber-600";
                     if (isSecond) colorClass = "bg-gradient-to-t from-slate-300 to-slate-500 scale-95 origin-bottom";
                     if (isThird) colorClass = "bg-gradient-to-t from-orange-500 to-red-700 scale-90 origin-bottom";
@@ -952,17 +952,17 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     let orderClass = "order-2";
                     if (isSecond) orderClass = "order-1";
                     if (isThird) orderClass = "order-3";
-
+ 
                     return (
                       <motion.div
                         key={player.id}
                         initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.2 + 0.5, type: 'spring' }}
-                        className={`relative flex flex-col items-center justify-end w-48 ${heightClass} ${colorClass} rounded-3xl overflow-visible pt-16 ${orderClass} mb-8`}
+                        className={`relative flex flex-col items-center justify-end w-1/4 max-w-[200px] min-w-[80px] ${heightClass} ${colorClass} rounded-2xl sm:rounded-3xl overflow-visible pt-8 ${orderClass} mb-4`}
                       >
-                        <div className="absolute -top-16 mb-4">
-                          <div className={`rounded-2xl border-2 border-slate-700 bg-slate-800 overflow-hidden ${isFirst ? 'w-32 h-32' : isSecond ? 'w-24 h-24' : 'w-20 h-20'}`}>
+                        <div className="absolute -top-10 sm:-top-16 mb-2 sm:mb-4">
+                          <div className={`rounded-xl sm:rounded-2xl border-2 border-slate-700 bg-slate-800 overflow-hidden ${isFirst ? 'w-20 h-20 sm:w-32 sm:h-32' : isSecond ? 'w-16 h-16 sm:w-24 sm:h-24' : 'w-14 h-14 sm:w-20 sm:h-20'}`}>
                             <img 
                               src={`https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(player.name)}`} 
                               alt="" 
@@ -970,30 +970,30 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                             />
                           </div>
                           {isFirst && (
-                            <div className="absolute -top-6 -right-5 transform rotate-12 drop-shadow-md">
-                              <Trophy className="w-12 h-12 fill-yellow-400 text-yellow-600" />
+                            <div className="absolute -top-4 sm:-top-6 -right-3 sm:-right-5 transform rotate-12 drop-shadow-md">
+                              <Trophy className="w-8 h-8 sm:w-12 sm:h-12 fill-yellow-400 text-yellow-600" />
                             </div>
                           )}
                           {isSecond && (
-                            <div className="absolute -top-5 -right-4 transform rotate-12 drop-shadow-md">
-                              <Medal className="w-10 h-10 fill-slate-300 text-slate-500" />
+                            <div className="absolute -top-3 sm:-top-5 -right-2 sm:-right-4 transform rotate-12 drop-shadow-md">
+                              <Medal className="w-6 h-6 sm:w-10 sm:h-10 fill-slate-300 text-slate-500" />
                             </div>
                           )}
                           {isThird && (
-                            <div className="absolute -top-4 -right-3 transform rotate-12 drop-shadow-md">
-                              <Award className="w-8 h-8 fill-orange-400 text-orange-600" />
+                            <div className="absolute -top-2 sm:-top-4 -right-2 sm:-right-3 transform rotate-12 drop-shadow-md">
+                              <Award className="w-5 h-5 sm:w-8 sm:h-8 fill-orange-400 text-orange-600" />
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col items-center pb-6 text-center w-full px-2">
-                          <div className={`font-extrabold uppercase tracking-widest text-slate-950 mb-1 line-clamp-1 w-full truncate ${isFirst ? 'text-xl' : 'text-lg'}`}>{player.name}</div>
-                          <div className={`font-black text-white drop-shadow-md ${isFirst ? 'text-4xl' : 'text-3xl'}`}>{player.score}</div>
+                        <div className="flex flex-col items-center pb-3 sm:pb-6 text-center w-full px-1 sm:px-2">
+                          <div className={`font-extrabold uppercase tracking-widest text-slate-950 mb-1 line-clamp-1 w-full truncate ${isFirst ? 'text-xs sm:text-xl' : 'text-[10px] sm:text-lg'}`}>{player.name}</div>
+                          <div className={`font-black text-white drop-shadow-md ${isFirst ? 'text-xl sm:text-4xl' : 'text-lg sm:text-3xl'}`}>{player.score}</div>
                         </div>
                       </motion.div>
                     )
                   })}
               </div>
-              <div className="flex flex-col items-center gap-6 mt-16 z-20">
+              <div className="flex flex-col items-center gap-4 sm:gap-6 mt-8 sm:mt-16 z-20 shrink-0">
                 <button 
                   onClick={async () => {
                     playSound('click');
