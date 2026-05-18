@@ -16,6 +16,7 @@ interface PlayBoardProps {
   isMuted: boolean;
   setIsMuted: (val: boolean | ((p: boolean) => boolean)) => void;
   gameId?: string;
+  onQuestionScreenChange?: (isQuestionScreen: boolean) => void;
 }
 
 const TypewriterText = ({ text, onComplete }: { text: string; onComplete?: () => void }) => {
@@ -61,11 +62,15 @@ const SmartHeader = ({ text }: { text: string }) => {
   );
 };
 
-export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMuted, gameId }: PlayBoardProps) {
+export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMuted, gameId, onQuestionScreenChange }: PlayBoardProps) {
   const [activeQuestion, setActiveQuestion] = useState<{
     catId: string;
     question: Question;
   } | null>(null);
+
+  useEffect(() => {
+    onQuestionScreenChange?.(!!activeQuestion);
+  }, [activeQuestion, onQuestionScreenChange]);
   const [displayStage, setDisplayStage] = useState<'bonus_intro' | 'question' | 'answer'>('question');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { playSound } = useSound(isMuted);
@@ -87,7 +92,12 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     if (!gameId) return;
     const gRef = doc(db, 'games', gameId);
     // Ensure game status is playing when board is first mounted
-    setDoc(gRef, { status: 'playing', activeQuestion: null, firstBuzz: null }, { merge: true });
+    setDoc(gRef, { 
+      status: 'playing', 
+      categories: gameState.categories.map(c => c.name),
+      activeQuestion: null, 
+      firstBuzz: null 
+    }, { merge: true });
   }, [gameId]);
 
   // Handle Host Updates & Buzzes
@@ -134,6 +144,15 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
     });
     return () => unsub();
   }, [gameId, playSound]);
+
+  useEffect(() => {
+    if (activeQuestion && hostParams?.skipVotes && gameState.players.length > 0) {
+      if (hostParams.skipVotes.length >= gameState.players.length) {
+        playSound('click');
+        closeQuestion();
+      }
+    }
+  }, [hostParams?.skipVotes, gameState.players.length, activeQuestion]);
 
   const allAnswered = gameState.categories.length > 0 && gameState.categories.every(cat => cat.questions.length > 0 && cat.questions.every(q => q.isAnswered));
 
@@ -253,6 +272,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                endTime: gameState.settings?.timerEnabled ? Date.now() + gameState.settings.timerDuration * 1000 : null 
              },
              firstBuzz: null,
+             skipVotes: [],
              typingFinished: false,
              manuallySkipped: false
            });
@@ -283,6 +303,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
           endTime: (gameState.settings?.timerEnabled && !gameState.settings.timerOnBuzzOnly) ? Date.now() + gameState.settings.timerDuration * 1000 : null 
         },
         firstBuzz: null,
+        skipVotes: [],
         typingFinished: false,
         manuallySkipped: false
       });
@@ -561,23 +582,23 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="bg-emerald-600 rounded-[2rem] p-2.5 sm:p-3 flex flex-row items-center gap-3 sm:gap-6 border-4 border-white/20 w-fit max-w-[95vw] shadow-none backdrop-blur-md"
+                    className="bg-emerald-600 rounded-[3rem] p-4 sm:p-6 lg:p-8 flex flex-row items-center gap-6 sm:gap-10 border-[6px] border-white/20 w-fit max-w-[95vw] shadow-2xl backdrop-blur-md"
                   >
-                    <div className="flex items-center gap-3 sm:gap-4 shrink-0 pl-1">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden bg-black/20 border-2 border-white/20">
+                    <div className="flex items-center gap-4 sm:gap-6 shrink-0 pl-1 sm:pl-2">
+                      <div className="w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 rounded-2xl overflow-hidden bg-black/20 border-2 border-white/20">
                         <img 
                           src={hostParams.firstBuzz.avatarUrl || `https://api.dicebear.com/9.x/thumbs/svg?seed=${encodeURIComponent(hostParams.firstBuzz.name)}&backgroundColor=transparent`} 
                           alt="" 
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="flex flex-col text-white max-w-[100px] sm:max-w-[180px]">
-                        <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[7px] sm:text-[9px]">First to Buzz</span>
-                        <span className="text-base sm:text-xl font-black tracking-tight truncate">{hostParams.firstBuzz.name}</span>
+                      <div className="flex flex-col text-white max-w-[200px] sm:max-w-[400px] lg:max-w-[500px]">
+                        <span className="text-emerald-100/70 font-bold tracking-widest uppercase text-[11px] sm:text-[14px] lg:text-[16px]">First to Buzz</span>
+                        <span className="text-3xl sm:text-5xl lg:text-7xl font-black tracking-tight truncate">{hostParams.firstBuzz.name}</span>
                       </div>
                     </div>
                     
-                    <div className="flex gap-1.5 shrink-0">
+                    <div className="flex gap-2 sm:gap-3 shrink-0">
                        <button
                          onClick={() => {
                            if (!gameState.players.find(p => p.id === hostParams.firstBuzz.participantId)) {
@@ -588,7 +609,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              handleAwardPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                            }, 100);
                          }}
-                         className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-2 px-3 sm:px-6 rounded-[1rem] transition-all text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap shadow-none"
+                         className="bg-emerald-400 hover:bg-emerald-300 active:scale-95 text-emerald-950 font-black py-4 px-6 sm:px-10 rounded-2xl transition-all text-sm sm:text-base uppercase tracking-wider whitespace-nowrap shadow-none"
                        >
                          Correct (+{activeQuestion.question.bonusPoints || activeQuestion.question.points})
                        </button>
@@ -602,7 +623,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              handleDeductPoints(pId, activeQuestion.question.bonusPoints || activeQuestion.question.points);
                            }, 100);
                          }}
-                         className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-2 px-3 sm:px-5 rounded-[1rem] transition-all text-[10px] sm:text-xs uppercase tracking-wider shadow-none"
+                         className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold py-4 px-6 sm:px-8 rounded-2xl transition-all text-sm sm:text-base uppercase tracking-wider shadow-none"
                        >
                          WRONG
                        </button>
@@ -617,7 +638,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                              setDoc(gRef, { firstBuzz: null, wrongBuzzes: wrong, manuallySkipped: true }, { merge: true });
                            }
                          }}
-                         className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-2 px-3 sm:px-5 rounded-[1rem] transition-all text-[10px] sm:text-xs uppercase tracking-wider shadow-none"
+                         className="bg-black/20 hover:bg-black/40 active:scale-95 text-white font-bold py-4 px-6 sm:px-8 rounded-2xl transition-all text-sm sm:text-base uppercase tracking-wider shadow-none"
                        >
                          Skip
                        </button>
@@ -678,7 +699,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     }}
                   >
                     {!q.isAnswered && <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />}
-                    <span className={`font-extrabold text-[clamp(0.75rem,75cqmin,10rem)] tracking-tight z-10 drop-shadow-md leading-none ${q.isAnswered ? 'opacity-0' : 'opacity-100'}`}>
+                    <span className={`font-extrabold text-[clamp(0.75rem,85cqmin,10rem)] tracking-tight z-10 drop-shadow-md leading-none ${q.isAnswered ? 'opacity-0' : 'opacity-100'}`}>
                       {q.points}
                     </span>
                   </button>
@@ -745,7 +766,7 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex flex-col p-6 sm:p-12 lg:p-20 backdrop-blur-3xl"
+            className="fixed inset-0 z-50 flex flex-col p-4 sm:p-8 lg:p-12 lg:pb-8 backdrop-blur-3xl"
             style={{ 
               background: 'var(--color-active-bg)',
               color: 'var(--color-active-text)'
@@ -831,14 +852,14 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.4 }}
-                className="w-full max-w-screen-2xl mx-auto grid mt-8 gap-4 z-10"
+                className="w-full max-w-screen-2xl mx-auto grid mt-auto pt-6 gap-3 z-10 px-4"
                 style={{ gridTemplateColumns: `repeat(${gameState.players.length + 1}, 1fr)` }}
               >
                 {gameState.players.map((player) => (
-                  <div key={player.id} className="flex flex-col gap-3 group/judge">
+                  <div key={player.id} className="flex flex-col gap-2 group/judge">
                      <button
                       onClick={() => handleAwardPoints(player.id, activeQuestion.question.bonusPoints || activeQuestion.question.points)}
-                      className="w-full py-6 sm:py-8 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-xl sm:text-2xl lg:text-3xl rounded-2xl active:translate-y-1 transition-all uppercase tracking-wider relative overflow-hidden shadow-xl"
+                      className="w-full py-3 sm:py-4 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black text-base sm:text-lg rounded-xl active:translate-y-1 transition-all uppercase tracking-wider relative overflow-hidden shadow-md"
                     >
                       <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/judge:opacity-100 transition-opacity"></div>
                       <span className="relative z-10 flex items-center justify-center gap-2">
@@ -847,19 +868,19 @@ export default function PlayBoard({ gameState, hooks, onEdit, isMuted, setIsMute
                     </button>
                     <button
                       onClick={() => handleDeductPoints(player.id, activeQuestion.question.bonusPoints || activeQuestion.question.points)}
-                      className="w-full py-4 bg-black/40 hover:bg-rose-500/80 text-rose-200 hover:text-white font-bold text-base sm:text-lg rounded-xl border border-white/10 transition-all uppercase tracking-widest overflow-hidden shadow-lg"
+                      className="w-full py-2 bg-black/40 hover:bg-rose-500/80 text-rose-200 hover:text-white font-bold text-xs sm:text-sm rounded-lg border border-white/10 transition-all uppercase tracking-widest overflow-hidden shadow-md"
                     >
                       Penalize (-{activeQuestion.question.bonusPoints || activeQuestion.question.points})
                     </button>
                   </div>
                 ))}
                 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
                   <button
                     onClick={() => { playSound('click'); closeQuestion(); }}
-                    className="w-full h-full min-h-[120px] bg-slate-700 hover:bg-slate-600 text-slate-200 font-black text-xl sm:text-2xl rounded-2xl active:translate-y-1 transition-all uppercase tracking-wider flex items-center justify-center overflow-hidden shadow-xl"
+                    className="w-full h-full min-h-[64px] bg-slate-700 hover:bg-slate-600 text-slate-200 font-black text-base sm:text-lg rounded-xl active:translate-y-1 transition-all uppercase tracking-wider flex items-center justify-center overflow-hidden shadow-md"
                   >
-                    <span>Nobody <br/><span className="text-base opacity-50">/ Skip</span></span>
+                    <span>Nobody <br/><span className="text-sm opacity-50">/ Skip</span></span>
                   </button>
                 </div>
               </motion.div>

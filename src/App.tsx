@@ -11,13 +11,13 @@ import { collection, doc, onSnapshot, setDoc } from 'firebase/firestore';
 function HostView() {
   const { gameState, ...hooks } = useGameState();
   const [mode, setMode] = useState<'editor' | 'play'>('editor');
+  const [isQuestionScreen, setIsQuestionScreen] = useState(false);
   const [gameId, setGameId] = useState('');
   const [isMuted, setIsMuted] = useState(() => {
     const saved = localStorage.getItem('isMuted');
     return saved === null ? false : saved === 'true';
   });
   const [audioUnlocked, setAudioUnlocked] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -105,53 +105,105 @@ function HostView() {
   const allAnswered = gameState.categories.length > 0 && 
     gameState.categories.every(cat => cat.questions.length > 0 && cat.questions.every(q => q.isAnswered));
 
-  useEffect(() => {
-    if (audioRef.current && audioUnlocked) {
-      let src = "";
-      if (mode === 'editor') {
-        src = "https://fillabrona.github.io/editingjeo.mp3";
-      } else {
-        src = allAnswered ? "https://fillabrona.github.io/victory.m4a" : "https://fillabrona.github.io/jeopardy.m4a";
-      }
+  const [boardSongIdx, setBoardSongIdx] = useState(0);
+  const boardSongs = [
+    "https://fillabrona.github.io/risikoppispel/music/game1.mp3",
+    "https://fillabrona.github.io/risikoppispel/music/game2.mp3",
+    "https://fillabrona.github.io/risikoppispel/music/game3.mp3"
+  ];
 
-      const audio = audioRef.current;
-      
-      // Use dataset to store the abstract src to avoid browser-absolute path issues
-      if (audio.dataset.activeSrc !== src) {
-        audio.dataset.activeSrc = src;
-        audio.src = src;
-        audio.load();
-        
-        if (!isMuted) {
-          audio.play().catch(e => console.error("Audio playback failed:", e));
-        }
-      }
+  const audioRefs = {
+    editor: useRef<HTMLAudioElement>(null),
+    victory: useRef<HTMLAudioElement>(null),
+    question: useRef<HTMLAudioElement>(null),
+    board1: useRef<HTMLAudioElement>(null),
+    board2: useRef<HTMLAudioElement>(null),
+    board3: useRef<HTMLAudioElement>(null),
+  };
+
+  useEffect(() => {
+    if (!audioUnlocked) return;
+
+    let activeKey = '';
+    if (mode === 'editor') {
+      activeKey = 'editor';
+    } else if (allAnswered) {
+      activeKey = 'victory';
+    } else if (isQuestionScreen) {
+      activeKey = 'question';
+    } else {
+      activeKey = `board${boardSongIdx + 1}`;
+    }
+
+    Object.entries(audioRefs).forEach(([key, ref]) => {
+      const audio = ref.current;
+      if (!audio) return;
       
       audio.muted = isMuted;
-      audio.loop = true;
-      
-      if (!isMuted && audio.paused) {
-        audio.play().catch(() => {});
+
+      if (key === activeKey) {
+        if (!isMuted && audio.paused) {
+          audio.play().catch(e => console.error("Audio playback failed:", e));
+        }
+      } else {
+        if (!audio.paused) {
+          audio.pause();
+          if (key === 'question') {
+            audio.currentTime = 0;
+          }
+        }
       }
-    }
-  }, [allAnswered, isMuted, mode, audioUnlocked]);
+    });
+  }, [allAnswered, isMuted, mode, audioUnlocked, isQuestionScreen, boardSongIdx]);
+
+  useEffect(() => {
+    const handleEnded = () => {
+      if (mode === 'play' && !allAnswered && !isQuestionScreen) {
+        setBoardSongIdx((prev) => (prev + 1) % boardSongs.length);
+      }
+    };
+
+    const board1 = audioRefs.board1.current;
+    const board2 = audioRefs.board2.current;
+    const board3 = audioRefs.board3.current;
+    
+    board1?.addEventListener('ended', handleEnded);
+    board2?.addEventListener('ended', handleEnded);
+    board3?.addEventListener('ended', handleEnded);
+
+    return () => {
+      board1?.removeEventListener('ended', handleEnded);
+      board2?.removeEventListener('ended', handleEnded);
+      board3?.removeEventListener('ended', handleEnded);
+    };
+  }, [mode, allAnswered, isQuestionScreen, audioUnlocked]);
 
   const handleUnlockAudio = () => {
     setAudioUnlocked(true);
-    if (audioRef.current) {
-      audioRef.current.play().catch(() => {});
+    let activeKey = '';
+    if (mode === 'editor') {
+      activeKey = 'editor';
+    } else if (allAnswered) {
+      activeKey = 'victory';
+    } else if (isQuestionScreen) {
+      activeKey = 'question';
+    } else {
+      activeKey = `board${boardSongIdx + 1}`;
+    }
+    const audioToPlay = audioRefs[activeKey as keyof typeof audioRefs]?.current;
+    if (audioToPlay && !isMuted) {
+       audioToPlay.play().catch(() => {});
     }
   };
 
   return (
     <div className="antialiased min-h-screen bg-[#0f172a] selection:bg-cyan-500/30">
-      <audio
-        ref={audioRef}
-        autoPlay
-        loop
-        muted={isMuted}
-        className="hidden"
-      />
+      <audio ref={audioRefs.editor} src="https://fillabrona.github.io/risikoppispel/music/editor.mp3" loop muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.victory} src="https://fillabrona.github.io/risikoppispel/music/victory.mp3" loop muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.question} src="https://fillabrona.github.io/risikoppispel/music/question.mp3" loop muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.board1} src="https://fillabrona.github.io/risikoppispel/music/game1.mp3" muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.board2} src="https://fillabrona.github.io/risikoppispel/music/game2.mp3" muted={isMuted} className="hidden" />
+      <audio ref={audioRefs.board3} src="https://fillabrona.github.io/risikoppispel/music/game3.mp3" muted={isMuted} className="hidden" />
 
       {!audioUnlocked && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md">
@@ -194,6 +246,7 @@ function HostView() {
           isMuted={isMuted}
           setIsMuted={setIsMuted}
           gameId={gameId}
+          onQuestionScreenChange={setIsQuestionScreen}
         />
       )}
     </div>

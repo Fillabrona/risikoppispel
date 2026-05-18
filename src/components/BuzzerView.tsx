@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, auth, loginAnonymously } from '../lib/firebase';
-import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, getDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { Mic, Square, Loader2, Trophy, Minus, Plus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
@@ -40,6 +40,9 @@ export default function BuzzerView() {
   const [isSendingBuzz, setIsSendingBuzz] = useState(false);
   const [localHasClicked, setLocalHasClicked] = useState(false);
   const [cachedLeaderboard, setCachedLeaderboard] = useState<any[] | null>(null);
+  const [liveParticipants, setLiveParticipants] = useState<any[]>([]);
+  const [showCategories, setShowCategories] = useState(false);
+  const [showScores, setShowScores] = useState(false);
   const [kickReason, setKickReason] = useState<string | null>(null);
   const { playSound } = useSound(false);
   const isManualExit = useRef(false);
@@ -110,6 +113,12 @@ export default function BuzzerView() {
   useEffect(() => {
     if (!gameId || !participantId || !joined) return;
     
+    const partsRef = collection(db, 'games', gameId, 'participants');
+    const unsubParts = onSnapshot(partsRef, (snap) => {
+       const parts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+       setLiveParticipants(parts.sort((a: any, b: any) => (b.score || 0) - (a.score || 0)));
+    });
+
     const pRef = doc(db, 'games', gameId, 'participants', participantId);
     const unsub = onSnapshot(pRef, (snap) => {
       if (snap.exists()) {
@@ -165,6 +174,7 @@ export default function BuzzerView() {
     window.addEventListener('beforeunload', cleanup);
     return () => {
       unsub();
+      unsubParts();
       window.removeEventListener('beforeunload', cleanup);
     };
   }, [gameId, participantId, joined, myScore, playSound]);
@@ -641,6 +651,19 @@ export default function BuzzerView() {
 
   const buzzerColor = getBuzzerColor(participantId);
 
+  const handleVoteSkip = async () => {
+    if (!gameId || !participantId) return;
+    try {
+      await updateDoc(doc(db, 'games', gameId), {
+        skipVotes: arrayUnion(participantId)
+      });
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
+  const hasVotedSkip = gameStatus?.skipVotes?.includes(participantId);
+
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-between p-6 select-none touch-manipulation relative">
       <AnimatePresence mode="popLayout">
@@ -720,8 +743,99 @@ export default function BuzzerView() {
         </div>
       </div>
 
-      {/* Footer Info */}
-      <div className="w-full flex justify-center py-4" />
+      {/* Footer Info & Actions */}
+      <div className="w-full max-w-sm flex flex-col gap-3 py-4">
+        {gameStatus?.activeQuestion && !hasVotedSkip && (
+          <button 
+            onClick={handleVoteSkip}
+            className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm uppercase tracking-widest border border-white/10"
+          >
+            Vote to Skip Question
+          </button>
+        )}
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setShowCategories(true)}
+            className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest border border-white/5"
+          >
+            Categories
+          </button>
+          <button 
+            onClick={() => setShowScores(true)}
+            className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest border border-white/5"
+          >
+            Leaderboard
+          </button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showCategories && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex flex-col justify-end bg-slate-950/80 backdrop-blur-sm"
+          >
+             <motion.div 
+               initial={{ y: "100%" }}
+               animate={{ y: 0 }}
+               exit={{ y: "100%" }}
+               transition={{ type: "spring", damping: 25, stiffness: 200 }}
+               className="bg-slate-900 border-t border-white/10 rounded-t-3xl max-h-[80vh] flex flex-col"
+             >
+               <div className="flex items-center justify-between p-6 border-b border-white/10">
+                 <h3 className="text-xl font-black text-white uppercase tracking-widest">Categories</h3>
+                 <button onClick={() => setShowCategories(false)} className="p-2 text-white/50 hover:text-white bg-white/5 rounded-full"><Minus className="w-5 h-5"/></button>
+               </div>
+               <div className="p-6 overflow-y-auto space-y-3 pb-safe">
+                 {gameStatus?.categories?.map((c: string, i: number) => (
+                   <div key={i} className="p-4 bg-white/5 border border-white/5 rounded-xl text-white font-bold text-center">
+                     {c}
+                   </div>
+                 ))}
+                 {(!gameStatus?.categories || gameStatus.categories.length === 0) && (
+                   <p className="text-white/50 text-center py-8">Categories not available yet.</p>
+                 )}
+               </div>
+             </motion.div>
+          </motion.div>
+        )}
+        
+        {showScores && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex flex-col justify-end bg-slate-950/80 backdrop-blur-sm"
+          >
+             <motion.div 
+               initial={{ y: "100%" }}
+               animate={{ y: 0 }}
+               exit={{ y: "100%" }}
+               transition={{ type: "spring", damping: 25, stiffness: 200 }}
+               className="bg-slate-900 border-t border-white/10 rounded-t-3xl max-h-[80vh] flex flex-col"
+             >
+               <div className="flex items-center justify-between p-6 border-b border-white/10">
+                 <h3 className="text-xl font-black text-white uppercase tracking-widest">Live Scores</h3>
+                 <button onClick={() => setShowScores(false)} className="p-2 text-white/50 hover:text-white bg-white/5 rounded-full"><Minus className="w-5 h-5"/></button>
+               </div>
+               <div className="p-6 overflow-y-auto space-y-3 pb-safe">
+                 {liveParticipants.map((p: any, i: number) => (
+                   <div key={p.id} className={`flex items-center gap-4 p-4 rounded-xl ${p.id === participantId ? 'bg-cyan-500/20 border border-cyan-500/50' : 'bg-white/5 border border-white/5'}`}>
+                     <div className="flex-none font-black text-white/40 w-6 text-center">{i + 1}</div>
+                     <div className="flex-1 font-bold text-white truncate">{p.name || 'Anonymous'}</div>
+                     <div className="font-black text-white tabular-nums">{p.score || 0}</div>
+                   </div>
+                 ))}
+                 {liveParticipants.length === 0 && (
+                   <p className="text-white/50 text-center py-8">No players found.</p>
+                 )}
+               </div>
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

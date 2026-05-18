@@ -602,7 +602,7 @@ Output ONLY valid JSON, no markdown formatting.
                     disabled={gameState.categories.length >= 10}
                     className={`flex items-center space-x-2 text-sm font-bold px-4 py-2 rounded-xl transition-all ${
                       gameState.categories.length >= 10 
-                        ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed border border-slate-600/30'
+                        ? 'opacity-50 grayscale bg-slate-700/50 text-slate-500 cursor-not-allowed border border-slate-600/30'
                         : 'bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-white'
                     }`}
                   >
@@ -785,7 +785,7 @@ Output ONLY valid JSON, no markdown formatting.
                               disabled={normalCount >= 10}
                               className={`mt-6 w-full flex items-center justify-center space-x-2 text-sm font-bold px-4 py-4 rounded-xl transition-all ${
                                 normalCount >= 10
-                                  ? 'text-slate-500 bg-slate-900/50 border border-slate-800 border-dashed cursor-not-allowed'
+                                  ? 'opacity-50 grayscale text-slate-500 bg-slate-900/50 border border-slate-800 border-dashed cursor-not-allowed'
                                   : 'text-slate-300 bg-slate-900 border border-slate-700 border-dashed hover:border-slate-500 hover:text-white'
                               }`}
                             >
