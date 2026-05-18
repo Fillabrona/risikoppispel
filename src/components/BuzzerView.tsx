@@ -46,6 +46,7 @@ export default function BuzzerView() {
   const [kickReason, setKickReason] = useState<string | null>(null);
   const { playSound } = useSound(false);
   const isManualExit = useRef(false);
+  const [userWantsToJoin, setUserWantsToJoin] = useState(false);
   const wakeLockRef = useRef<any>(null);
 
   // Wake Lock Implementation
@@ -96,7 +97,7 @@ export default function BuzzerView() {
 
   // Auto-join logic
   useEffect(() => {
-    if (isAuth && gameId && participantId && !joined) {
+    if (isAuth && gameId && participantId && !joined && userWantsToJoin) {
       const savedName = localStorage.getItem('participantName');
       if (savedName) {
         const pRef = doc(db, 'games', gameId, 'participants', participantId);
@@ -107,7 +108,7 @@ export default function BuzzerView() {
         }).catch(err => console.error("Auto-join check failed:", err));
       }
     }
-  }, [isAuth, gameId, participantId, joined]);
+  }, [isAuth, gameId, participantId, joined, userWantsToJoin]);
 
   // Sync Participant Data & Lifecycle
   useEffect(() => {
@@ -173,8 +174,9 @@ export default function BuzzerView() {
 
     const handleFSChange = () => {
       if (!document.fullscreenElement && joined && !isManualExit.current) {
-        setKickReason("You must stay in fullscreen mode to play.");
+        setKickReason("Keep fullscreen on to play.");
         setJoined(false);
+        setUserWantsToJoin(false);
       }
     };
 
@@ -216,6 +218,32 @@ export default function BuzzerView() {
   }, [gameId, participantId, isAuth, gameStatus?.firstBuzz?.participantId, playSound]);
 
   // Clear score notification
+  // Screen Wake Lock
+  useEffect(() => {
+    let wakeLock: any = null;
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && joined) {
+        try {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+        } catch (err) {
+          console.error("Wake Lock error:", err);
+        }
+      }
+    };
+
+    if (joined) {
+      requestWakeLock();
+    }
+
+    return () => {
+      if (wakeLock) {
+        wakeLock.release()
+          .then(() => { wakeLock = null; })
+          .catch(() => {});
+      }
+    };
+  }, [joined]);
+
   useEffect(() => {
     if (scoreNotification) {
       const timer = setTimeout(() => setScoreNotification(null), 2500);
@@ -390,6 +418,7 @@ export default function BuzzerView() {
     if (isJoining) return;
     
     setKickReason(null);
+    setUserWantsToJoin(true);
     
     try {
       if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
@@ -699,15 +728,15 @@ export default function BuzzerView() {
         {scoreNotification && (
           <motion.div
             key={scoreNotification.id}
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            initial={{ opacity: 0, y: 30, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            exit={{ opacity: 0, y: -30, scale: 0.9 }}
             transition={{ 
               type: 'spring', 
-              damping: 20, 
-              stiffness: 300
+              damping: 25, 
+              stiffness: 400
             }}
-            className="fixed inset-x-4 bottom-12 z-[110] flex items-center justify-center pointer-events-none"
+            className="fixed inset-x-4 bottom-24 z-[110] flex items-center justify-center pointer-events-none"
           >
             <motion.div 
               className={`relative overflow-hidden rounded-2xl border-2 border-white/20 px-5 py-3 shadow-xl ${scoreNotification.type === 'plus' ? 'bg-emerald-500' : 'bg-rose-500'}`}
@@ -783,13 +812,12 @@ export default function BuzzerView() {
         <AnimatePresence>
           {gameStatus?.activeQuestion && !hasVotedSkip && !wasTimedOut && (
             <motion.button 
-              layout
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0, height: 0, margin: 0, padding: 0 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={handleVoteSkip}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm uppercase tracking-widest border border-white/10 overflow-hidden"
+              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all text-sm uppercase tracking-widest border border-white/10"
             >
               Vote to Skip Question ({gameStatus?.skipVotes?.length || 0}/{liveParticipants.length})
             </motion.button>
